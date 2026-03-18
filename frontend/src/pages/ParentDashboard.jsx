@@ -1,399 +1,441 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import api from '../services/api';
-import './Dashboard.css';
+import { useNavigate } from 'react-router-dom';
+import { 
+  getMyChildren, 
+  registerChild, 
+  deleteChild, 
+  createTask, 
+  getParentTasks, 
+  createPrize, 
+  getChildPrizes,
+  getScores,
+  getNeuroInfo
+} from '../services/api';
 
-function ParentDashboard({ user, onLogout }) {
-  const location = useLocation();
-  const [tasks, setTasks] = useState([]);
-  const [rewards, setRewards] = useState([]);
+const ParentDashboard = ({ onLogout }) => {
+  const navigate = useNavigate();
+  const userEmail = localStorage.getItem('userEmail');
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  // Estados Generales
   const [children, setChildren] = useState([]);
-  const [scores, setScores] = useState({});
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showRewardModal, setShowRewardModal] = useState(false);
-  const [motivationalPhrase, setMotivationalPhrase] = useState(null);
+  const [selectedChildId, setSelectedChildId] = useState('');
+  const [neuroInfo, setNeuroInfo] = useState([]);
 
-  const [newTask, setNewTask] = useState({
+  // Estados para Agregar Hijo
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [newChildName, setNewChildName] = useState('');
+  const [newChildPin, setNewChildPin] = useState('');
+
+  // Estados para Crear Tarea
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
-    duration_minutes: 15,
-    points: 10
+    duration_minutes: '',
+    points: ''
   });
 
-  const [newReward, setNewReward] = useState({
+  // Estados para Crear Premio
+  const [showAddPrize, setShowAddPrize] = useState(false);
+  const [prizeForm, setPrizeForm] = useState({
     title: '',
     description: '',
-    required_points: 50,
+    required_points: '',
     reward_type: 'daily'
   });
 
+  // Estados para Visualización
+  const [tasks, setTasks] = useState([]);
+  const [prizes, setPrizes] = useState([]);
+  const [childScores, setChildScores] = useState(null);
+
+  // Cargar datos iniciales
   useEffect(() => {
-    loadTasks();
-    loadRewards();
     loadChildren();
-    loadMotivationalPhrase();
+    loadNeuroInfo();
   }, []);
 
-  const loadTasks = async () => {
-    try {
-      const data = await api.getTasks();
-      setTasks(data);
-    } catch (error) {
-      console.error('Error loading tasks:', error);
+  // Cargar tareas/premios cuando cambia el hijo seleccionado
+  useEffect(() => {
+    if (selectedChildId) {
+      loadChildData(selectedChildId);
     }
-  };
-
-  const loadRewards = async () => {
-    try {
-      const data = await api.getRewards();
-      setRewards(data);
-    } catch (error) {
-      console.error('Error loading rewards:', error);
-    }
-  };
+  }, [selectedChildId]);
 
   const loadChildren = async () => {
     try {
-      const data = await api.getChildren();
-      setChildren(data);
-      // Load scores for each child
-      data.forEach(child => {
-        loadScores(child.id);
+      const list = await getMyChildren();
+      setChildren(list);
+      if (list.length > 0 && !selectedChildId) {
+        setSelectedChildId(list[0].id);
+      }
+    } catch (error) {
+      console.error("Error cargando hijos:", error);
+    }
+  };
+
+  const loadNeuroInfo = async () => {
+    try {
+      const info = await getNeuroInfo('tip');
+      setNeuroInfo(info.slice(0, 2)); // Tomar solo 2 consejos
+    } catch (error) {
+      console.error("Error cargando info:", error);
+    }
+  };
+
+  const loadChildData = async (childId) => {
+    try {
+      const [tasksData, prizesData, scoresData] = await Promise.all([
+        getParentTasks(), // Nota: Esto trae todas las tareas del padre, filtraremos en frontend o backend
+        getChildPrizes(childId),
+        getScores(childId)
+      ]);
+      
+      // Filtrar tareas solo para el hijo seleccionado (si el backend no lo hace)
+      // En nuestro backend actual, getParentTasks trae las del usuario logueado (padre) pero asignadas a hijos
+      // Asumiremos que el backend ya filtra por created_by, pero debemos filtrar por assigned_to aquí si es necesario
+      // Para este ejemplo, usamos las tareas tal cual vienen del endpoint diseñado para padres
+      setTasks(tasksData.filter(t => t.assigned_to == childId));
+      
+      setPrizes(prizesData);
+      setChildScores(scoresData);
+    } catch (error) {
+      console.error("Error cargando datos del niño:", error);
+    }
+  };
+
+  // --- Manejadores de Hijos ---
+  const handleAddChild = async (e) => {
+    e.preventDefault();
+    try {
+      await registerChild({ 
+        name: newChildName, 
+        pin_code: newChildPin, 
+        avatar_color: '#' + Math.floor(Math.random()*16777215).toString(16) 
       });
+      
+      alert('¡Hijo agregado correctamente!');
+      setShowAddChild(false);
+      setNewChildName('');
+      setNewChildPin('');
+      loadChildren();
     } catch (error) {
-      console.error('Error loading children:', error);
+      alert('Error: ' + (error.response?.data?.message || error.message));
     }
   };
 
-  const loadScores = async (childId) => {
-    try {
-      const data = await api.getScores(childId);
-      setScores(prev => ({ ...prev, [childId]: data }));
-    } catch (error) {
-      console.error('Error loading scores:', error);
-    }
-  };
-
-  const loadMotivationalPhrase = async () => {
-    try {
-      const data = await api.getMotivationalPhrase('general');
-      setMotivationalPhrase(data);
-    } catch (error) {
-      console.error('Error loading phrase:', error);
-    }
-  };
-
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-    try {
-      await api.createTask(newTask);
-      setNewTask({ title: '', description: '', duration_minutes: 15, points: 10 });
-      setShowTaskModal(false);
-      loadTasks();
-    } catch (error) {
-      console.error('Error creating task:', error);
-    }
-  };
-
-  const handleCreateReward = async (e) => {
-    e.preventDefault();
-    try {
-      await api.createReward(newReward);
-      setNewReward({ title: '', description: '', required_points: 50, reward_type: 'daily' });
-      setShowRewardModal(false);
-      loadRewards();
-    } catch (error) {
-      console.error('Error creating reward:', error);
-    }
-  };
-
-  const handleDeleteTask = async (id) => {
-    if (confirm('¿Estás seguro de eliminar esta tarea?')) {
+  const handleDeleteChild = async (id, name) => {
+    if (window.confirm(`¿Estás seguro de eliminar a ${name}? Se borrarán sus tareas y progreso.`)) {
       try {
-        await api.deleteTask(id);
-        loadTasks();
+        await deleteChild(id);
+        setChildren(children.filter(c => c.id !== id));
+        if (selectedChildId === id) setSelectedChildId('');
+        alert('Hijo eliminado');
       } catch (error) {
-        console.error('Error deleting task:', error);
+        alert('Error al eliminar: ' + error.message);
       }
     }
   };
 
-  const isActive = (path) => location.pathname === path;
+  // --- Manejadores de Tareas ---
+  const handleTaskChange = (e) => {
+    setTaskForm({ ...taskForm, [e.target.name]: e.target.value });
+  };
 
-  return (
-    <div className="dashboard">
-      <nav className="navbar">
-        <div className="nav-brand">🧩 TDAH App - Padre</div>
-        <div className="nav-links">
-          <Link to="/parent" className={isActive('/parent') ? 'active' : ''}>Tareas</Link>
-          <Link to="/parent/rewards" className={isActive('/parent/rewards') ? 'active' : ''}>Premios</Link>
-          <Link to="/parent/scores" className={isActive('/parent/scores') ? 'active' : ''}>Puntajes</Link>
-          <Link to="/parent/info" className={isActive('/parent/info') ? 'active' : ''}>Info TDAH</Link>
-          <button onClick={onLogout} className="btn-logout">Cerrar Sesión</button>
-        </div>
-      </nav>
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!selectedChildId) return alert('Selecciona un hijo primero');
 
-      <main className="main-content">
-        {motivationalPhrase && (
-          <div className="motivational-banner">
-            💬 "{motivationalPhrase.phrase}"
-          </div>
-        )}
-
-        <Routes>
-          <Route path="/" element={
-            <div className="tasks-section">
-              <div className="section-header">
-                <h2>📋 Tareas</h2>
-                <button className="btn-primary" onClick={() => setShowTaskModal(true)}>
-                  + Nueva Tarea
-                </button>
-              </div>
-
-              <div className="cards-grid">
-                {tasks.map(task => (
-                  <div key={task.id} className="card task-card">
-                    <h3>{task.title}</h3>
-                    <p>{task.description}</p>
-                    <div className="task-meta">
-                      <span>⏱️ {task.duration_minutes} min</span>
-                      <span>⭐ {task.points} pts</span>
-                    </div>
-                    <button 
-                      className="btn-danger"
-                      onClick={() => handleDeleteTask(task.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                ))}
-                {tasks.length === 0 && (
-                  <p className="empty-message">No hay tareas creadas aún.</p>
-                )}
-              </div>
-            </div>
-          } />
-
-          <Route path="/rewards" element={
-            <div className="rewards-section">
-              <div className="section-header">
-                <h2>🎁 Premios</h2>
-                <button className="btn-primary" onClick={() => setShowRewardModal(true)}>
-                  + Nuevo Premio
-                </button>
-              </div>
-
-              <div className="cards-grid">
-                {rewards.map(reward => (
-                  <div key={reward.id} className={`card reward-card ${reward.reward_type}`}>
-                    <span className="reward-badge">{reward.reward_type}</span>
-                    <h3>{reward.title}</h3>
-                    <p>{reward.description}</p>
-                    <div className="reward-points">🌟 {reward.required_points} puntos</div>
-                  </div>
-                ))}
-                {rewards.length === 0 && (
-                  <p className="empty-message">No hay premios creados aún.</p>
-                )}
-              </div>
-            </div>
-          } />
-
-          <Route path="/scores" element={
-            <div className="scores-section">
-              <h2>📊 Puntajes de tus Hijos</h2>
-              <div className="cards-grid">
-                {children.map(child => (
-                  <div key={child.id} className="card score-card">
-                    <h3>👤 {child.name}</h3>
-                    {scores[child.id] && (
-                      <div className="score-details">
-                        <div className="score-item">
-                          <span>📅 Hoy:</span>
-                          <strong>{scores[child.id].daily} pts</strong>
-                        </div>
-                        <div className="score-item">
-                          <span>📆 Esta semana:</span>
-                          <strong>{scores[child.id].weekly} pts</strong>
-                        </div>
-                        <div className="score-item">
-                          <span>📅 Este mes:</span>
-                          <strong>{scores[child.id].monthly} pts</strong>
-                        </div>
-                        <div className="score-item total">
-                          <span>🏆 Total:</span>
-                          <strong>{scores[child.id].total} pts</strong>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {children.length === 0 && (
-                  <p className="empty-message">No hay hijos registrados.</p>
-                )}
-              </div>
-            </div>
-          } />
-
-          <Route path="/info" element={
-            <NeurodivergenceInfo />
-          } />
-        </Routes>
-      </main>
-
-      {showTaskModal && (
-        <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Crear Nueva Tarea</h2>
-            <form onSubmit={handleCreateTask}>
-              <div className="form-group">
-                <label>Título</label>
-                <input
-                  type="text"
-                  value={newTask.title}
-                  onChange={e => setNewTask({...newTask, title: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Descripción</label>
-                <textarea
-                  value={newTask.description}
-                  onChange={e => setNewTask({...newTask, description: e.target.value})}
-                  rows="3"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Duración (min)</label>
-                  <input
-                    type="number"
-                    value={newTask.duration_minutes}
-                    onChange={e => setNewTask({...newTask, duration_minutes: parseInt(e.target.value)})}
-                    min="1"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Puntos</label>
-                  <input
-                    type="number"
-                    value={newTask.points}
-                    onChange={e => setNewTask({...newTask, points: parseInt(e.target.value)})}
-                    min="1"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowTaskModal(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">Crear Tarea</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showRewardModal && (
-        <div className="modal-overlay" onClick={() => setShowRewardModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Crear Nuevo Premio</h2>
-            <form onSubmit={handleCreateReward}>
-              <div className="form-group">
-                <label>Título</label>
-                <input
-                  type="text"
-                  value={newReward.title}
-                  onChange={e => setNewReward({...newReward, title: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Descripción</label>
-                <textarea
-                  value={newReward.description}
-                  onChange={e => setNewReward({...newReward, description: e.target.value})}
-                  rows="3"
-                />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Puntos requeridos</label>
-                  <input
-                    type="number"
-                    value={newReward.required_points}
-                    onChange={e => setNewReward({...newReward, required_points: parseInt(e.target.value)})}
-                    min="1"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Tipo</label>
-                  <select
-                    value={newReward.reward_type}
-                    onChange={e => setNewReward({...newReward, reward_type: e.target.value})}
-                  >
-                    <option value="daily">Diario</option>
-                    <option value="weekly">Semanal</option>
-                    <option value="monthly">Mensual</option>
-                  </select>
-                </div>
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowRewardModal(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary">Crear Premio</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NeurodivergenceInfo() {
-  const [info, setInfo] = useState([]);
-  const [filter, setFilter] = useState('all');
-
-  useEffect(() => {
-    loadInfo();
-  }, [filter]);
-
-  const loadInfo = async () => {
     try {
-      const data = await api.getNeurodivergenceInfo(filter);
-      setInfo(data);
+      await createTask({
+        ...taskForm,
+        duration_minutes: Number(taskForm.duration_minutes),
+        points: Number(taskForm.points),
+        assigned_to_child_id: selectedChildId
+      });
+      
+      alert('Tarea creada exitosamente');
+      setShowAddTask(false);
+      setTaskForm({ title: '', description: '', duration_minutes: '', points: '' });
+      loadChildData(selectedChildId);
     } catch (error) {
-      console.error('Error loading info:', error);
+      console.error(error);
+      alert('Error: ' + (error.response?.data?.message || 'Falló la creación'));
+    }
+  };
+
+  // --- Manejadores de Premios ---
+  const handlePrizeChange = (e) => {
+    setPrizeForm({ ...prizeForm, [e.target.name]: e.target.value });
+  };
+
+  const handleCreatePrize = async (e) => {
+    e.preventDefault();
+    
+    // CORRECCIÓN: Usar prizeForm.title en lugar de title directamente
+    if (!prizeForm.title || !prizeForm.required_points) {
+      return alert('Título y puntos son requeridos');
+    }
+
+    try {
+      await createPrize({
+        title: prizeForm.title,
+        description: prizeForm.description,
+        required_points: Number(prizeForm.required_points),
+        reward_type: prizeForm.reward_type,
+        target_child_id: selectedChildId || null
+      });
+      
+      alert('¡Premio creado!');
+      setShowAddPrize(false);
+      setPrizeForm({ title: '', description: '', required_points: '', reward_type: 'daily' });
+      loadChildData(selectedChildId);
+    } catch (error) {
+      console.error(error);
+      alert('Error: ' + (error.response?.data?.message || 'Falló la creación del premio'));
     }
   };
 
   return (
-    <div className="info-section">
-      <h2>🧠 Información sobre Neurodivergencia</h2>
-      
-      <div className="filter-buttons">
-        <button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>Todos</button>
-        <button className={filter === 'famous_people' ? 'active' : ''} onClick={() => setFilter('famous_people')}>Famosos</button>
-        <button className={filter === 'curiosity' ? 'active' : ''} onClick={() => setFilter('curiosity')}>Curiosidades</button>
-        <button className={filter === 'tip' ? 'active' : ''} onClick={() => setFilter('tip')}>Consejos</button>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Panel de Control 👨‍👩‍👧‍👦</h1>
+          <p className="text-gray-500">Bienvenido/a, {user?.name}</p>
+        </div>
+        <div className="mt-4 md:mt-0 flex gap-3">
+          <button 
+            onClick={() => navigate('/')} 
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            Inicio
+          </button>
+          <button 
+            onClick={onLogout}
+            className="bg-red-50 text-red-600 px-5 py-2 rounded-lg hover:bg-red-100 font-medium transition"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </header>
 
-      <div className="cards-grid">
-        {info.map(item => (
-          <div key={item.id} className={`card info-card ${item.category}`}>
-            <span className="info-badge">{item.category}</span>
-            <h3>{item.title}</h3>
-            <p>{item.content}</p>
+      <div className="grid lg:grid-cols-4 gap-6">
+        
+       {/* Columna Izquierda: Lista de Hijos */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-lg text-gray-800">Mis Hijos</h2>
+              <button 
+                onClick={() => setShowAddChild(!showAddChild)}
+                className="text-blue-600 hover:bg-blue-50 p-2 rounded-full transition"
+                title="Agregar hijo"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            {showAddChild && (
+              <form onSubmit={handleAddChild} className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <input 
+                  type="text" 
+                  placeholder="Nombre" 
+                  value={newChildName}
+                  onChange={(e) => setNewChildName(e.target.value)}
+                  className="w-full mb-2 p-2 text-sm border rounded"
+                  required
+                />
+                <input 
+                  type="number" 
+                  placeholder="PIN (4 dígitos)" 
+                  maxLength="4"
+                  value={newChildPin}
+                  onChange={(e) => setNewChildPin(e.target.value)}
+                  className="w-full mb-2 p-2 text-sm border rounded"
+                  required
+                />
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-blue-600 text-white text-xs py-2 rounded hover:bg-blue-700">Guardar</button>
+                  <button type="button" onClick={() => setShowAddChild(false)} className="flex-1 bg-gray-300 text-gray-700 text-xs py-2 rounded">Cancelar</button>
+                </div>
+              </form>
+            )}
+
+            <div className="space-y-2">
+              {children.map(child => (
+                <div 
+                  key={child.id} 
+                  onClick={() => setSelectedChildId(child.id)}
+                  className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition ${selectedChildId === child.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                      style={{ backgroundColor: child.avatar_color }}
+                    >
+                      {child.name.charAt(0)}
+                    </div>
+                    <span className="font-medium">{child.name}</span>
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }}
+                    className={`p-1 rounded hover:bg-red-200 ${selectedChildId === child.id ? 'text-white hover:text-red-900' : 'text-gray-400 hover:text-red-600'}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {children.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No hay hijos registrados.</p>}
+            </div>
           </div>
-        ))}
+
+          {/* Info Neurodivergencia */}
+          <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
+            <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
+              <span>💡</span> Consejos TDAH
+            </h3>
+            <ul className="space-y-2">
+              {neuroInfo.map((info, idx) => (
+                <li key={idx} className="text-sm text-indigo-900 bg-white p-2 rounded shadow-sm">
+                  <strong>{info.title}:</strong> {info.content}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Columna Derecha: Gestión */}
+        <div className="lg:col-span-3">
+          {!selectedChildId ? (
+            <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl border-2 border-dashed border-gray-300 text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <p className="text-lg">Selecciona un hijo para gestionar sus tareas y premios</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              
+              {/* Resumen de Puntos */}
+              {childScores && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-400">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Puntos Hoy</p>
+                    <p className="text-2xl font-bold text-gray-800">{childScores.daily}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-400">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Esta Semana</p>
+                    <p className="text-2xl font-bold text-gray-800">{childScores.weekly}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-400">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Este Mes</p>
+                    <p className="text-2xl font-bold text-gray-800">{childScores.monthly}</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-purple-400">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Total Histórico</p>
+                    <p className="text-2xl font-bold text-gray-800">{childScores.total}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Sección Tareas */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                  <h2 className="font-bold text-lg text-gray-800">📋 Tareas Asignadas</h2>
+                  <button 
+                    onClick={() => setShowAddTask(!showAddTask)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                  >
+                    {showAddTask ? 'Cancelar' : '+ Nueva Tarea'}
+                  </button>
+                </div>
+                
+                {showAddTask && (
+                  <form onSubmit={handleCreateTask} className="p-5 bg-blue-50 border-b border-blue-100 grid md:grid-cols-2 gap-4">
+                    <input name="title" value={taskForm.title} onChange={handleTaskChange} placeholder="Título (ej: Hacer cama)" className="p-2 border rounded w-full" required />
+                    <input name="description" value={taskForm.description} onChange={handleTaskChange} placeholder="Descripción breve" className="p-2 border rounded w-full" />
+                    <input type="number" name="duration_minutes" value={taskForm.duration_minutes} onChange={handleTaskChange} placeholder="Minutos" className="p-2 border rounded w-full" required />
+                    <input type="number" name="points" value={taskForm.points} onChange={handleTaskChange} placeholder="Puntos" className="p-2 border rounded w-full" required />
+                    <button type="submit" className="md:col-span-2 bg-green-600 text-white py-2 rounded hover:bg-green-700 font-bold">Guardar Tarea</button>
+                  </form>
+                )}
+
+                <div className="divide-y divide-gray-100">
+                  {tasks.length === 0 ? (
+                    <p className="p-6 text-center text-gray-400">No hay tareas creadas aún.</p>
+                  ) : (
+                    tasks.map(task => (
+                      <div key={task.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
+                        <div>
+                          <h4 className="font-bold text-gray-800">{task.title}</h4>
+                          <p className="text-sm text-gray-500">{task.description}</p>
+                          <div className="flex gap-3 mt-1 text-xs font-medium">
+                            <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded">⏱️ {task.duration_minutes} min</span>
+                            <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">🏆 {task.points} pts</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Sección Premios */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                  <h2 className="font-bold text-lg text-gray-800">🎁 Premios Disponibles</h2>
+                  <button 
+                    onClick={() => setShowAddPrize(!showAddPrize)}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition"
+                  >
+                    {showAddPrize ? 'Cancelar' : '+ Nuevo Premio'}
+                  </button>
+                </div>
+
+                {showAddPrize && (
+                  <form onSubmit={handleCreatePrize} className="p-5 bg-purple-50 border-b border-purple-100 grid md:grid-cols-2 gap-4">
+                    <input name="title" value={prizeForm.title} onChange={handlePrizeChange} placeholder="Título del premio" className="p-2 border rounded w-full" required />
+                    <select name="reward_type" value={prizeForm.reward_type} onChange={handlePrizeChange} className="p-2 border rounded w-full">
+                      <option value="daily">Diario</option>
+                      <option value="weekly">Semanal</option>
+                      <option value="monthly">Mensual</option>
+                    </select>
+                    <input type="number" name="required_points" value={prizeForm.required_points} onChange={handlePrizeChange} placeholder="Puntos requeridos" className="p-2 border rounded w-full" required />
+                    <input name="description" value={prizeForm.description} onChange={handlePrizeChange} placeholder="Descripción" className="p-2 border rounded w-full md:col-span-2" />
+                    <button type="submit" className="md:col-span-2 bg-green-600 text-white py-2 rounded hover:bg-green-700 font-bold">Guardar Premio</button>
+                  </form>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-4 p-5">
+                  {prizes.length === 0 ? (
+                    <p className="col-span-2 text-center text-gray-400">No hay premios configurados.</p>
+                  ) : (
+                    prizes.map(prize => (
+                      <div key={prize.id} className={`border rounded-lg p-4 ${prize.is_unlocked ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-bold text-gray-800">{prize.title}</h4>
+                          <span className="text-xs font-bold bg-white px-2 py-1 rounded border">{prize.required_points} pts</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{prize.description}</p>
+                        <span className="text-xs uppercase font-bold text-gray-400">{prize.reward_type}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-}
+};
 
 export default ParentDashboard;

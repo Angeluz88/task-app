@@ -1,139 +1,175 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import './Login.css';
+import { useNavigate, Link } from 'react-router-dom';
+import { registerParent } from '../services/api';
 
-function Register() {
+export default function Register() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'parent',
-    parentId: ''
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(''); // Limpiar error al escribir
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
+
+    // Validaciones básicas
+    if (formData.password !== formData.confirmPassword) {
+      setError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const data = await api.register(formData);
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setSuccess('¡Registro exitoso! Ahora puedes iniciar sesión.');
-        setTimeout(() => navigate('/login'), 2000);
-      }
+      const response = await registerParent(formData.name, formData.email, formData.password);
+      
+      // Guardar token y datos del usuario
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('userEmail', response.user.email);
+      localStorage.setItem('role', 'parent');
+
+      alert('¡Registro exitoso! Ahora crea un perfil para tu hijo.');
+      navigate('/parent-dashboard');
     } catch (err) {
-      setError('Error de conexión. Verifica que el servidor esté corriendo.');
+      console.error(err);
+      setError(err.response?.data?.message || 'Error al registrar. Intenta nuevamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1>🧩 TDAH App</h1>
-          <p>Crear nueva cuenta</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+        
+        {/* Encabezado */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-indigo-600 mb-2">Crear Cuenta de Padre</h1>
+          <p className="text-gray-600 text-sm">
+            Gestiona tareas, premios y sigue el progreso de tus hijos.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <h2>Registrarse</h2>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="space-y-4">
           
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
-
-          <div className="form-group">
-            <label htmlFor="name">Nombre completo</label>
+          {/* Nombre */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tu Nombre</label>
             <input
               type="text"
-              id="name"
               name="name"
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="Tu nombre"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+              placeholder="Ej: Juan Pérez"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
             <input
               type="email"
-              id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              placeholder="tu@email.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+              placeholder="tu@correo.com"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+          {/* Contraseña */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
             <input
               type="password"
-              id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
               placeholder="••••••••"
-              minLength="6"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="role">Tipo de usuario</label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
+          {/* Confirmar Contraseña */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
               onChange={handleChange}
               required
-            >
-              <option value="parent">Padre/Madre</option>
-              <option value="child">Hijo/a</option>
-            </select>
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+              placeholder="••••••••"
+            />
           </div>
 
-          {formData.role === 'child' && (
-            <div className="form-group">
-              <label htmlFor="parentId">ID del Padre (opcional)</label>
-              <input
-                type="text"
-                id="parentId"
-                name="parentId"
-                value={formData.parentId}
-                onChange={handleChange}
-                placeholder="ID del padre/madre"
-              />
+          {/* Mensajes de Error */}
+          {error && (
+            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-200">
+              {error}
             </div>
           )}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Registrando...' : 'Registrarse'}
+          {/* Botón Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 px-4 rounded-lg text-white font-bold text-lg shadow-md transition-all transform hover:scale-[1.02] ${
+              loading 
+                ? 'bg-indigo-400 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg'
+            }`}
+          >
+            {loading ? 'Creando cuenta...' : 'Registrarme'}
           </button>
         </form>
 
-        <div className="login-footer">
-          <p>¿Ya tienes cuenta? <Link to="/login">Inicia sesión aquí</Link></p>
+        {/* Pie de página con enlaces */}
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-gray-600 text-sm">
+            ¿Ya tienes cuenta?{' '}
+            <Link to="/login" className="text-indigo-600 font-semibold hover:underline">
+              Iniciar Sesión
+            </Link>
+          </p>
+          
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-gray-500 text-xs mb-2">¿Eres un niño?</p>
+            <Link
+              to="/child-login"
+              className="inline-block w-full py-2 px-4 bg-yellow-100 text-yellow-700 font-semibold rounded-lg hover:bg-yellow-200 transition"
+            >
+              Ir a Login de Hijos 🚀
+            </Link>
+          </div>
         </div>
+
       </div>
     </div>
   );
-}
-
-export default Register;
+};
