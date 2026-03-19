@@ -495,5 +495,5 @@ app.get('/api/neuro-info', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`💾 Base de datos SQLite lista.`);
+  console.log('🛠️ VERSIÓN CORREGIDA SQLITE - FECHA:', new Date().toISOString());
 });
