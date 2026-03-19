@@ -9,7 +9,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secreto_jwt_para_produccion_12345';
-
+console.log('🚀 VERSIÓN DEL CÓDIGO: FIX-SQLITE-FINAL-V2');
 // --- CONFIGURACIÓN DE CORS ---
 const allowedOrigins = ['https://task-app-eight-inky.vercel.app', 'http://localhost:5173', 'http://localhost:3000'];
 app.use(cors({
