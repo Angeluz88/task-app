@@ -2,7 +2,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react';
 
 // Páginas (Asegúrate de que estos archivos existan en src/pages/)
-import Login from './pages/Login';
+import Login from './pages/#/Login';
 import Register from './pages/Register';
 import ParentDashboard from './pages/ParentDashboard';
 import ChildDashboard from './pages/ChildDashboard';
@@ -14,11 +14,11 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   const role = localStorage.getItem('role');
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/#/login" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/#/login" replace />;
   }
 
   return children;
@@ -54,7 +54,7 @@ function App() {
       <Routes>
         {/* Rutas Públicas */}
         <Route 
-          path="/login" 
+          path="/#/login" 
           element={
             isAuthenticated ? (
               userRole === 'parent' ? <Navigate to="/parent-dashboard" /> : <Navigate to="/child-dashboard" />
@@ -121,7 +121,7 @@ function App() {
             <Navigate to={
               isAuthenticated 
                 ? (userRole === 'parent' ? '/parent-dashboard' : '/child-dashboard')
-                : '/login'
+                : '/#/login'
             } replace />
         } />
 
