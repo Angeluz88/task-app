@@ -46,7 +46,7 @@ function App() {
     localStorage.removeItem('userEmail');
     setIsAuthenticated(false);
     setUserRole(null);
-    window.location.href = '/login'; // Recargar para limpiar estados
+    window.location.href = '/#/login'; // Recargar para limpiar estados
   };
 
   return (
