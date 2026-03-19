@@ -11,11 +11,9 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secreto_jwt_para_produccion_12345';
 
 // --- CONFIGURACIÓN DE CORS ---
-// Permitimos Vercel y localhost
 const allowedOrigins = ['https://task-app-eight-inky.vercel.app', 'http://localhost:5173', 'http://localhost:3000'];
 app.use(cors({
   origin: function (origin, callback) {
-    // Permitir requests sin origin (como móviles o postman) y los de la lista
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -35,7 +33,6 @@ try {
   db = new Database(DB_PATH);
   console.log('✅ Conectado a SQLite en:', DB_PATH);
   
-  // Habilitar claves foráneas
   db.pragma('foreign_keys = ON');
 
   // Inicializar Tablas
@@ -103,7 +100,7 @@ try {
   `);
   console.log('📦 Tablas verificadas/creadas.');
 
-  // Seed Data (Solo si está vacío)
+  // Seed Data
   const count = db.prepare('SELECT count() as count FROM motivational_phrases').get();
   if (count.count === 0) {
     console.log('🌱 Insertando datos de ejemplo...');
@@ -292,8 +289,7 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
 app.get('/api/tasks/child/:childId', (req, res) => {
   const { childId } = req.params;
   try {
-    // Calculamos la fecha de hoy en formato YYYY-MM-DD para SQLite
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     
     const tasks = db.prepare(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
@@ -327,7 +323,7 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
 });
 
 // ==========================================
-// RUTAS DE PROGRESO (CORREGIDO PARA SQLITE)
+// RUTAS DE PROGRESO (CORREGIDO 100% SQLITE)
 // ==========================================
 
 app.post('/api/tasks/complete', (req, res) => {
@@ -346,7 +342,7 @@ app.post('/api/tasks/complete', (req, res) => {
     const task = db.prepare('SELECT points FROM tasks WHERE id = ?').get(task_id);
     if (!task) return res.status(404).json({ message: 'Tarea no encontrada' });
     
-    // Usamos datetime('now', 'localtime') para guardar la hora local del servidor
+    // CORRECCIÓN: Usar datetime('now', 'localtime') en lugar de NOW()
     db.prepare(
       'INSERT INTO task_progress (task_id, child_id, points_earned, completed_at) VALUES (?, ?, ?, datetime("now", "localtime"))'
     ).run(task_id, child_id, task.points);
@@ -361,18 +357,23 @@ app.post('/api/tasks/complete', (req, res) => {
 app.get('/api/scores/:childId', (req, res) => {
   const { childId } = req.params;
   try {
-    // Fechas para cálculos relativos (más seguro en SQLite que usar funciones SQL complejas)
+    // CORRECCIÓN: Calcular fechas en JS para evitar errores de SQL
     const now = new Date();
+    
+    // Inicio del día actual (YYYY-MM-DD 00:00:00)
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 19).replace('T', ' ');
     
+    // Hace 7 días
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekStart = weekAgo.toISOString().slice(0, 19).replace('T', ' ');
 
+    // Hace 30 días
     const monthAgo = new Date(now);
     monthAgo.setDate(monthAgo.getDate() - 30);
     const monthStart = monthAgo.toISOString().slice(0, 19).replace('T', ' ');
 
+    // Consultas usando las fechas calculadas
     const daily = db.prepare(
       'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = ? AND date(completed_at) = date("now")'
     ).get(childId);
@@ -462,7 +463,6 @@ app.get('/api/phrases', (req, res) => {
     if (category) {
       phrases = db.prepare(query + ' AND category = ?').all(category);
     } else {
-      // SQLite no tiene ORDER BY RAND() nativo eficiente, pero funciona para pocos datos
       phrases = db.prepare(query + ' ORDER BY RANDOM() LIMIT 1').all();
     }
     
@@ -477,11 +477,11 @@ app.get('/api/neuro-info', (req, res) => {
   const { type } = req.query;
   try {
     let query = 'SELECT title, content, category FROM neurodivergence_info WHERE active = 1';
+    let info;
     if (type) {
-      query += ' AND category = ?';
-      var info = db.prepare(query).all(type);
+      info = db.prepare(query + ' AND category = ?').all(type);
     } else {
-      var info = db.prepare(query).all();
+      info = db.prepare(query).all();
     }
     res.json(info);
   } catch (error) {
