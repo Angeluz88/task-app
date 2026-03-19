@@ -100,7 +100,7 @@ try {
   `);
   console.log('📦 Tablas verificadas/creadas.');
 
-  // Seed Data
+  // Seed Data (Datos de ejemplo si está vacío)
   const count = db.prepare('SELECT count() as count FROM motivational_phrases').get();
   if (count.count === 0) {
     console.log('🌱 Insertando datos de ejemplo...');
@@ -342,7 +342,7 @@ app.post('/api/tasks/complete', (req, res) => {
     const task = db.prepare('SELECT points FROM tasks WHERE id = ?').get(task_id);
     if (!task) return res.status(404).json({ message: 'Tarea no encontrada' });
     
-    // CORRECCIÓN: Usar datetime('now', 'localtime') en lugar de NOW()
+    // CORRECCIÓN DEFINITIVA: Usar datetime('now', 'localtime') en lugar de NOW()
     db.prepare(
       'INSERT INTO task_progress (task_id, child_id, points_earned, completed_at) VALUES (?, ?, ?, datetime("now", "localtime"))'
     ).run(task_id, child_id, task.points);
@@ -357,7 +357,7 @@ app.post('/api/tasks/complete', (req, res) => {
 app.get('/api/scores/:childId', (req, res) => {
   const { childId } = req.params;
   try {
-    // CORRECCIÓN: Calcular fechas en JS para evitar errores de SQL
+    // CORRECCIÓN DEFINITIVA: Calcular fechas en JS para evitar errores de SQL
     const now = new Date();
     
     // Inicio del día actual (YYYY-MM-DD 00:00:00)
@@ -373,7 +373,7 @@ app.get('/api/scores/:childId', (req, res) => {
     monthAgo.setDate(monthAgo.getDate() - 30);
     const monthStart = monthAgo.toISOString().slice(0, 19).replace('T', ' ');
 
-    // Consultas usando las fechas calculadas
+    // Consultas usando las fechas calculadas y funciones nativas de SQLite
     const daily = db.prepare(
       'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = ? AND date(completed_at) = date("now")'
     ).get(childId);
@@ -495,5 +495,5 @@ app.get('/api/neuro-info', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log('🛠️ VERSIÓN CORREGIDA SQLITE - FECHA:', new Date().toISOString());
+  console.log(`💾 Base de datos SQLite lista.`);
 });
