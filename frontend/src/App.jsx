@@ -1,24 +1,24 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
-// Páginas (Asegúrate de que estos archivos existan en src/pages/)
-import Login from './pages/#/Login';
+// Asegúrate de que estas rutas sean correctas según tu estructura de carpetas
+import Login from './pages/Login';
 import Register from './pages/Register';
 import ParentDashboard from './pages/ParentDashboard';
 import ChildDashboard from './pages/ChildDashboard';
-import ChildLogin from './pages/ChildLogin'; // La nueva página especial para hijos
+import ChildLogin from './pages/ChildLogin';
 
-// Componente para proteger rutas privadas
+// Componente para proteger rutas
 const PrivateRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
 
   if (!token) {
-    return <Navigate to="/#/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/#/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;
@@ -29,7 +29,6 @@ function App() {
   const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
-    // Verificar sesión al cargar la app
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
 
@@ -46,7 +45,8 @@ function App() {
     localStorage.removeItem('userEmail');
     setIsAuthenticated(false);
     setUserRole(null);
-    window.location.href = '/#/login'; // Recargar para limpiar estados
+    // CORRECCIÓN CLAVE: Redirigir explícitamente a la ruta con hash
+    window.location.href = '/#/login';
   };
 
   return (
@@ -54,7 +54,7 @@ function App() {
       <Routes>
         {/* Rutas Públicas */}
         <Route 
-          path="/#/login" 
+          path="/login" 
           element={
             isAuthenticated ? (
               userRole === 'parent' ? <Navigate to="/parent-dashboard" /> : <Navigate to="/child-dashboard" />
@@ -79,7 +79,6 @@ function App() {
           } 
         />
 
-        {/* Login Especial para Hijos (Acceso rápido sin contraseña) */}
         <Route 
           path="/child-login" 
           element={
@@ -94,7 +93,7 @@ function App() {
           } 
         />
 
-        {/* Dashboard del Padre (Protegido) */}
+        {/* Rutas Protegidas */}
         <Route 
           path="/parent-dashboard" 
           element={
@@ -104,7 +103,6 @@ function App() {
           } 
         />
 
-        {/* Dashboard del Hijo (Protegido) */}
         <Route 
           path="/child-dashboard" 
           element={
@@ -114,22 +112,20 @@ function App() {
           } 
         />
 
-        {/* Ruta por defecto */}
         <Route 
           path="/" 
           element={
             <Navigate to={
               isAuthenticated 
                 ? (userRole === 'parent' ? '/parent-dashboard' : '/child-dashboard')
-                : '/#/login'
+                : '/login'
             } replace />
         } />
 
-        {/* Ruta 404 */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
-};
+}
 
 export default App;
