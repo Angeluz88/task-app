@@ -50,7 +50,7 @@ async function initDB() {
   let client;
   try {
     client = await pool.connect();
-    console.log('✅ Conectado a Neon PostgreSQL (UTC)');
+    console.log('✅ Conectado a Neon PostgreSQL');
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -104,17 +104,20 @@ async function initDB() {
         active BOOLEAN DEFAULT true
       );
     `);
-    
+    console.log('📦 Tablas listas.');
+
+    // Seed Data
     const countRes = await client.query('SELECT COUNT(*) FROM motivational_phrases');
     if (parseInt(countRes.rows[0].count) === 0) {
       await client.query(`
         INSERT INTO motivational_phrases (phrase, category) VALUES 
         ('¡Tú puedes con esto!', 'before_task'),
-        ('¡Lo lograste!', 'after_task');
+        ('¡Lo lograste!', 'after_task'),
+        ('Eres único.', 'general');
         INSERT INTO neurodivergence_info (title, content, category) VALUES 
-        ('Hiperfoco', 'Es un superpoder.', 'curiosity');
+        ('Famosos con TDAH', 'Einstein y Disney tenían TDAH.', 'famous_people'),
+        ('Hiperfoco', 'Tu superpoder.', 'curiosity');
       `);
-      console.log('🌱 Datos iniciales insertados.');
     }
   } catch (error) {
     console.error('❌ Error DB:', error.message);
@@ -127,7 +130,8 @@ initDB();
 
 // Middleware Auth
 const authenticateToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Token requerido' });
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ message: 'Token inválido' });
@@ -140,10 +144,10 @@ const authenticateToken = (req, res, next) => {
 
 app.post('/api/register', async (req, res) => {
   const { name, email, password } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ message: 'Faltan datos' });
   try {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) return res.status(400).json({ message: 'Email ya registrado' });
-
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
@@ -151,78 +155,79 @@ app.post('/api/register', async (req, res) => {
     );
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user });
+    res.status(201).json({ message: 'Registrado', token, user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error registro', error: error.message });
   }
 });
 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ message: 'Faltan datos' });
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1 AND role = $2', [email, 'parent']);
     if (result.rows.length === 0) return res.status(401).json({ message: 'Credenciales inválidas' });
     const user = result.rows[0];
     if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ message: 'Credenciales inválidas' });
-    
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error login', error: error.message });
   }
 });
 
 app.post('/api/children', async (req, res) => {
   const { name, pin_code, avatar_color, parent_email } = req.body;
+  if (!name || !pin_code || !parent_email) return res.status(400).json({ message: 'Faltan datos' });
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
     const parentId = parentRes.rows[0].id;
-
+    const existing = await pool.query('SELECT id FROM users WHERE parent_id = $1 AND pin_code = $2', [parentId, pin_code]);
+    if (existing.rows.length > 0) return res.status(400).json({ message: 'PIN en uso' });
     const result = await pool.query(
       'INSERT INTO users (name, role, pin_code, avatar_color, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [name, 'child', pin_code, avatar_color || '#3B82F6', parentId]
     );
-    res.status(201).json({ childId: result.rows[0].id });
+    res.status(201).json({ message: 'Hijo creado', childId: result.rows[0].id });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error creando hijo', error: error.message });
   }
 });
 
 app.post('/api/login-child', async (req, res) => {
   const { identifier, parent_email } = req.body;
+  if (!identifier || !parent_email) return res.status(400).json({ message: 'Faltan datos' });
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
-    
+    const parentId = parentRes.rows[0].id;
     const result = await pool.query(
-      `SELECT id, name, avatar_color, role FROM users 
-       WHERE parent_id = $1 AND role = 'child' AND (pin_code = $2 OR name = $3)`,
-      [parentRes.rows[0].id, identifier, identifier]
+      'SELECT id, name, avatar_color, role FROM users WHERE parent_id = $1 AND role = $2 AND (pin_code = $3 OR name = $4)',
+      [parentId, 'child', identifier, identifier]
     );
     if (result.rows.length === 0) return res.status(401).json({ message: 'Hijo no encontrado' });
-    
     const child = result.rows[0];
-    const token = jwt.sign({ id: child.id, role: child.role, parent_id: parentRes.rows[0].id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: child.id, role: child.role, parent_id: parentId }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ user: child, token });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error login hijo', error: error.message });
   }
 });
 
 app.get('/api/my-children', async (req, res) => {
-  const { email } = req.query;
+  const parent_email = req.query.email;
+  if (!parent_email) return res.status(400).json({ message: 'Email requerido' });
   try {
-    const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
-    
     const result = await pool.query(
       'SELECT id, name, avatar_color, pin_code FROM users WHERE parent_id = $1 AND role = $2 ORDER BY name ASC',
       [parentRes.rows[0].id, 'child']
     );
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error obteniendo hijos', error: error.message });
   }
 });
 
@@ -232,29 +237,33 @@ app.delete('/api/children/:id', async (req, res) => {
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
-    
-    await pool.query('DELETE FROM users WHERE id = $1 AND parent_id = $2', [id, parentRes.rows[0].id]);
-    res.json({ message: 'Eliminado' });
+    const childRes = await pool.query('SELECT id FROM users WHERE id = $1 AND parent_id = $2', [id, parentRes.rows[0].id]);
+    if (childRes.rows.length === 0) return res.status(403).json({ message: 'No autorizado' });
+    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    res.json({ message: 'Hijo eliminado' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error eliminando', error: error.message });
   }
 });
 
 app.post('/api/tasks', authenticateToken, async (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ message: 'Solo padres' });
   const { title, description, duration_minutes, points, assigned_to_child_id } = req.body;
+  if (!title || !duration_minutes || !points || !assigned_to_child_id) return res.status(400).json({ message: 'Faltan datos' });
   try {
+    const childRes = await pool.query('SELECT id FROM users WHERE id = $1 AND parent_id = $2', [assigned_to_child_id, req.user.id]);
+    if (childRes.rows.length === 0) return res.status(403).json({ message: 'Hijo no válido' });
     const result = await pool.query(
       'INSERT INTO tasks (title, description, duration_minutes, points, created_by, assigned_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
       [title, description || '', parseInt(duration_minutes), parseInt(points), req.user.id, assigned_to_child_id]
     );
-    res.status(201).json({ taskId: result.rows[0].id });
+    res.status(201).json({ message: 'Tarea creada', taskId: result.rows[0].id });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error creando tarea', error: error.message });
   }
 });
 
-// ✅ CORRECCIÓN DEFINITIVA: Usar DATE_TRUNC en UTC para comparar solo el día
+// ✅ CORRECCIÓN DEFINITIVA: Usar DATE_TRUNC en SQL para comparar solo el día
 app.get('/api/tasks/child/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
@@ -271,7 +280,7 @@ app.get('/api/tasks/child/:childId', async (req, res) => {
     `, [childId]);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error obteniendo tareas', error: error.message });
   }
 });
 
@@ -279,77 +288,83 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ message: 'Acceso denegado' });
   try {
     const result = await pool.query(`
-      SELECT t.id, t.title, t.duration_minutes, t.points, u.name as child_name, t.assigned_to
+      SELECT t.id, t.title, t.description, t.duration_minutes, t.points, u.name as child_name, t.assigned_to
       FROM tasks t JOIN users u ON t.assigned_to = u.id
-      WHERE t.created_by = $1 ORDER BY t.created_at DESC`, [req.user.id]);
+      WHERE t.created_by = $1 ORDER BY t.created_at DESC
+    `, [req.user.id]);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error obteniendo tareas', error: error.message });
   }
 });
 
-// ✅ CORRECCIÓN DEFINITIVA: Insertar y verificar usando UTC
+// ✅ CORRECCIÓN DEFINITIVA: Verificar existencia usando DATE_TRUNC en SQL
 app.post('/api/tasks/complete', async (req, res) => {
   const { task_id, child_id } = req.body;
+  if (!task_id || !child_id) return res.status(400).json({ message: 'Datos requeridos' });
   try {
-    // Verificar si ya completó HOY (en UTC)
-    const checkRes = await pool.query(`
+    // Verificar si ya completó HOY (usando UTC para consistencia)
+    const existing = await pool.query(`
       SELECT id FROM task_progress 
       WHERE task_id = $1 AND child_id = $2 
-        AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+      AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
     `, [task_id, child_id]);
-
-    if (checkRes.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
+    
+    if (existing.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
 
     const taskRes = await pool.query('SELECT points FROM tasks WHERE id = $1', [task_id]);
     if (taskRes.rows.length === 0) return res.status(404).json({ message: 'Tarea no encontrada' });
-
+    
     await pool.query(
       'INSERT INTO task_progress (task_id, child_id, points_earned, completed_at) VALUES ($1, $2, $3, NOW())',
       [task_id, child_id, taskRes.rows[0].points]
     );
-
     res.json({ message: '¡Tarea completada!', points_earned: taskRes.rows[0].points });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error completando tarea', error: error.message });
   }
 });
 
 app.get('/api/scores/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
-    const todayStart = new Date();
-    todayStart.setHours(0,0,0,0);
-    
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
+    // Diario: Usar DATE_TRUNC para asegurar consistencia
+    const daily = await pool.query(`
+      SELECT SUM(points_earned) as total FROM task_progress 
+      WHERE child_id = $1 AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
+    `, [childId]);
 
-    const daily = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, todayStart]);
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
+
     const weekly = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, weekAgo]);
+    const monthly = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, monthAgo]);
     const total = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1', [childId]);
 
     res.json({
       daily: daily.rows[0].total || 0,
       weekly: weekly.rows[0].total || 0,
-      monthly: weekly.rows[0].total || 0, // Simplificado para el ejemplo
+      monthly: monthly.rows[0].total || 0,
       total: total.rows[0].total || 0
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error obteniendo puntajes', error: error.message });
   }
 });
 
 app.post('/api/prizes', authenticateToken, async (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ message: 'Acceso denegado' });
   const { title, description, required_points, reward_type, target_child_id } = req.body;
+  if (!title || !required_points || !reward_type) return res.status(400).json({ message: 'Faltan datos' });
   try {
+    const finalTargetId = target_child_id && target_child_id !== 'null' && target_child_id !== '' ? target_child_id : null;
     const result = await pool.query(
       'INSERT INTO rewards (title, description, required_points, reward_type, parent_id, target_child_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-      [title, description || '', required_points, reward_type, req.user.id, target_child_id || null]
+      [title, description || '', required_points, reward_type, req.user.id, finalTargetId]
     );
-    res.status(201).json({ prizeId: result.rows[0].id });
+    res.status(201).json({ message: 'Premio creado', prizeId: result.rows[0].id });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error creando premio', error: error.message });
   }
 });
 
@@ -360,25 +375,48 @@ app.get('/api/prizes/child/:childId', async (req, res) => {
     const currentPoints = scoreRes.rows[0].total || 0;
     const parentRes = await pool.query('SELECT parent_id FROM users WHERE id = $1', [childId]);
     if (parentRes.rows.length === 0) return res.json([]);
-    
     const prizesRes = await pool.query('SELECT * FROM rewards WHERE parent_id = $1', [parentRes.rows[0].parent_id]);
-    const processed = prizesRes.rows.map(p => ({ ...p, is_unlocked: currentPoints >= p.required_points }));
-    res.json(processed);
+    const processedPrizes = prizesRes.rows.filter(prize => {
+      if (prize.target_child_id !== null && prize.target_child_id !== undefined) {
+        return parseInt(prize.target_child_id) === parseInt(childId);
+      }
+      return true;
+    }).map(prize => ({ ...prize, is_unlocked: currentPoints >= prize.required_points }));
+    res.json(processedPrizes);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: 'Error obteniendo premios', error: error.message });
   }
 });
 
 app.get('/api/phrases', async (req, res) => {
-  const result = await pool.query('SELECT phrase FROM motivational_phrases WHERE active = true ORDER BY RANDOM() LIMIT 1');
-  res.json(result.rows[0] || { phrase: "¡Tú puedes!" });
+  const { category } = req.query;
+  try {
+    let query = 'SELECT phrase FROM motivational_phrases WHERE active = true';
+    let params = [];
+    if (category) { query += ' AND category = $1'; params.push(category); } 
+    else { query += ' ORDER BY RANDOM() LIMIT 1'; }
+    const result = await pool.query(query, params);
+    if (result.rows.length === 0) return res.json({ phrase: "¡Tú puedes!" });
+    res.json(result.rows[Math.floor(Math.random() * result.rows.length)]);
+  } catch (error) {
+    res.status(500).json({ message: 'Error frases', error: error.message });
+  }
 });
 
 app.get('/api/neuro-info', async (req, res) => {
-  const result = await pool.query('SELECT title, content FROM neurodivergence_info WHERE active = true LIMIT 1');
-  res.json(result.rows);
+  const { type } = req.query;
+  try {
+    let query = 'SELECT title, content, category FROM neurodivergence_info WHERE active = true';
+    let params = [];
+    if (type) { query += ' AND category = $1'; params.push(type); }
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Error info', error: error.message });
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor en puerto ${PORT}`);
+  console.log(`💾 Neon PostgreSQL conectado`);
 });
