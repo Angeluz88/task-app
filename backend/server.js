@@ -33,48 +33,34 @@ app.use(express.json());
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  console.error('❌ ERROR CRÍTICO: No se encontró la variable de entorno DATABASE_URL');
+  console.error('❌ ERROR CRÍTICO: No se encontró DATABASE_URL');
   process.exit(1);
 }
 
 const pool = new Pool({
   connectionString: databaseUrl,
-  ssl: {
-    rejectUnauthorized: false // Requerido para Neon
-  },
+  ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 20000,
 });
 
-// ==========================================
-// SOLUCIÓN DEFINITIVA DE FECHAS (UTC)
-// ==========================================
-function getUTCTodayRange() {
+// Función auxiliar para obtener la fecha de HOY en formato YYYY-MM-DD (String)
+// Esto asegura que comparemos solo el día, ignorando horas y zonas horarias.
+function getTodayDateString() {
   const now = new Date();
-  
-  // Obtener fecha UTC actual
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const day = now.getUTCDate();
-
-  // Inicio del día en UTC (00:00:00)
-  const start = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
-  
-  // Inicio del siguiente día (exclusivo)
-  const end = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
-
-  return { start, end };
+  // Ajustamos a UTC explícitamente para coincidir con como PostgreSQL guarda por defecto si no hay TZ
+  // O usamos toISOString().slice(0,10) que da YYYY-MM-DD en UTC.
+  return now.toISOString().slice(0, 10); 
 }
 
-// Función para iniciar DB con reintentos
+// Inicializar DB
 async function initDB() {
   let client;
   try {
     client = await pool.connect();
-    console.log('✅ Conectado exitosamente a Neon PostgreSQL (UTC)');
+    console.log('✅ Conectado exitosamente a Neon PostgreSQL');
     
-    // Crear Tablas si no existen
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -132,9 +118,8 @@ async function initDB() {
         active BOOLEAN DEFAULT true
       );
     `);
-    console.log('📦 Tablas verificadas/creadas correctamente.');
+    console.log('📦 Tablas verificadas/creadas.');
 
-    // Seed Data (Datos de ejemplo)
     const countRes = await client.query('SELECT COUNT(*) FROM motivational_phrases');
     if (parseInt(countRes.rows[0].count) === 0) {
       console.log('🌱 Insertando datos de ejemplo...');
@@ -149,10 +134,8 @@ async function initDB() {
         ('Hiperfoco', 'La capacidad de concentrarse intensamente es un superpoder.', 'curiosity');
       `);
     }
-
   } catch (error) {
     console.error('❌ Error iniciando DB:', error.message);
-    // Reintentar en 5 segundos
     setTimeout(initDB, 5000);
   } finally {
     if (client) client.release();
@@ -161,41 +144,36 @@ async function initDB() {
 
 initDB();
 
-// --- MIDDLEWARE DE AUTENTICACIÓN ---
+// Middleware Auth
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-
   if (!token) return res.status(401).json({ message: 'Token requerido' });
-
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: 'Token inválido o expirado' });
+    if (err) return res.status(403).json({ message: 'Token inválido' });
     req.user = user;
     next();
   });
 };
 
 // ==========================================
-// RUTAS DE AUTENTICACIÓN
+// RUTAS
 // ==========================================
 
 app.post('/api/register', async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ message: 'Todos los campos son requeridos' });
-
+  if (!name || !email || !password) return res.status(400).json({ message: 'Faltan datos' });
   try {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) return res.status(400).json({ message: 'El email ya está registrado' });
+    if (existing.rows.length > 0) return res.status(400).json({ message: 'Email ya registrado' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
       [name, email, hashedPassword, 'parent']
     );
-
     const user = result.rows[0];
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    
     res.status(201).json({ message: 'Usuario registrado', token, user });
   } catch (error) {
     console.error('Error registro:', error);
@@ -205,15 +183,12 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ message: 'Email y contraseña requeridos' });
-
+  if (!email || !password) return res.status(400).json({ message: 'Faltan datos' });
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1 AND role = $2', [email, 'parent']);
     if (result.rows.length === 0) return res.status(401).json({ message: 'Credenciales inválidas' });
-
     const user = result.rows[0];
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(401).json({ message: 'Credenciales inválidas' });
+    if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ message: 'Credenciales inválidas' });
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
@@ -223,14 +198,9 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ==========================================
-// RUTAS DE GESTIÓN DE HIJOS
-// ==========================================
-
 app.post('/api/children', async (req, res) => {
   const { name, pin_code, avatar_color, parent_email } = req.body;
   if (!name || !pin_code || !parent_email) return res.status(400).json({ message: 'Faltan datos' });
-
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
@@ -240,10 +210,9 @@ app.post('/api/children', async (req, res) => {
     if (existing.rows.length > 0) return res.status(400).json({ message: 'PIN ya en uso' });
 
     const result = await pool.query(
-      `INSERT INTO users (name, role, pin_code, avatar_color, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      'INSERT INTO users (name, role, pin_code, avatar_color, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id',
       [name, 'child', pin_code, avatar_color || '#3B82F6', parentId]
     );
-    
     res.status(201).json({ message: 'Hijo creado', childId: result.rows[0].id });
   } catch (error) {
     console.error('Error creando hijo:', error);
@@ -254,7 +223,6 @@ app.post('/api/children', async (req, res) => {
 app.post('/api/login-child', async (req, res) => {
   const { identifier, parent_email } = req.body;
   if (!identifier || !parent_email) return res.status(400).json({ message: 'Faltan datos' });
-
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
@@ -265,7 +233,6 @@ app.post('/api/login-child', async (req, res) => {
        WHERE parent_id = $1 AND role = $2 AND (pin_code = $3 OR name = $4)`,
       [parentId, 'child', identifier, identifier]
     );
-
     if (result.rows.length === 0) return res.status(401).json({ message: 'Hijo no encontrado' });
 
     const child = result.rows[0];
@@ -280,11 +247,9 @@ app.post('/api/login-child', async (req, res) => {
 app.get('/api/my-children', async (req, res) => {
   const parent_email = req.query.email;
   if (!parent_email) return res.status(400).json({ message: 'Email requerido' });
-
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
-
     const result = await pool.query(
       'SELECT id, name, avatar_color, pin_code FROM users WHERE parent_id = $1 AND role = $2 ORDER BY name ASC',
       [parentRes.rows[0].id, 'child']
@@ -301,10 +266,8 @@ app.delete('/api/children/:id', async (req, res) => {
   try {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
-
     const childRes = await pool.query('SELECT id FROM users WHERE id = $1 AND parent_id = $2', [id, parentRes.rows[0].id]);
     if (childRes.rows.length === 0) return res.status(403).json({ message: 'No autorizado' });
-
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
     res.json({ message: 'Hijo eliminado' });
   } catch (error) {
@@ -312,17 +275,10 @@ app.delete('/api/children/:id', async (req, res) => {
   }
 });
 
-// ==========================================
-// RUTAS DE TAREAS (CORREGIDO CON UTC)
-// ==========================================
-
 app.post('/api/tasks', authenticateToken, async (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ message: 'Solo padres' });
-
   const { title, description, duration_minutes, points, assigned_to_child_id } = req.body;
-  if (!title || !duration_minutes || !points || !assigned_to_child_id) {
-    return res.status(400).json({ message: 'Faltan datos requeridos' });
-  }
+  if (!title || !duration_minutes || !points || !assigned_to_child_id) return res.status(400).json({ message: 'Faltan datos' });
 
   try {
     const childRes = await pool.query('SELECT id FROM users WHERE id = $1 AND parent_id = $2', [assigned_to_child_id, req.user.id]);
@@ -332,7 +288,6 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
       'INSERT INTO tasks (title, description, duration_minutes, points, created_by, assigned_to) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
       [title, description || '', parseInt(duration_minutes), parseInt(points), req.user.id, assigned_to_child_id]
     );
-
     res.status(201).json({ message: 'Tarea creada', taskId: result.rows[0].id });
   } catch (error) {
     console.error('Error creando tarea:', error);
@@ -340,20 +295,21 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
   }
 });
 
+// ✅ CORRECCIÓN DEFINITIVA: Usar TO_CHAR para comparar solo la fecha (YYYY-MM-DD)
 app.get('/api/tasks/child/:childId', async (req, res) => {
   const { childId } = req.params;
+  const todayStr = getTodayDateString(); // Ej: '2026-03-25'
+  
   try {
-    const { start, end } = getUTCTodayRange();
-    
-    // CORRECCIÓN: Usar rango explícito >= start AND < end
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
              (SELECT COUNT(*) FROM task_progress tp 
-              WHERE tp.task_id = t.id AND tp.child_id = $1 AND tp.completed_at >= $2 AND tp.completed_at < $3) as completed_today
+              WHERE tp.task_id = t.id AND tp.child_id = $1 
+              AND TO_CHAR(tp.completed_at, 'YYYY-MM-DD') = $2) as completed_today
       FROM tasks t
       WHERE t.assigned_to = $1
       ORDER BY t.created_at DESC
-    `, [childId, start, end]);
+    `, [childId, todayStr]);
     
     res.json(result.rows);
   } catch (error) {
@@ -367,10 +323,8 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, u.name as child_name, t.assigned_to
-      FROM tasks t
-      JOIN users u ON t.assigned_to = u.id
-      WHERE t.created_by = $1
-      ORDER BY t.created_at DESC
+      FROM tasks t JOIN users u ON t.assigned_to = u.id
+      WHERE t.created_by = $1 ORDER BY t.created_at DESC
     `, [req.user.id]);
     res.json(result.rows);
   } catch (error) {
@@ -378,27 +332,20 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
   }
 });
 
-// ==========================================
-// RUTAS DE PROGRESO (CORREGIDO CON UTC)
-// ==========================================
-
+// ✅ CORRECCIÓN DEFINITIVA: Verificar existencia usando TO_CHAR
 app.post('/api/tasks/complete', async (req, res) => {
   const { task_id, child_id } = req.body;
   if (!task_id || !child_id) return res.status(400).json({ message: 'Datos requeridos' });
+  const todayStr = getTodayDateString();
 
   try {
-    const { start, end } = getUTCTodayRange();
-    
-    // CORRECCIÓN: Verificar existencia con el mismo rango UTC
+    // Verificar si ya completó hoy comparando strings 'YYYY-MM-DD'
     const existing = await pool.query(
-      'SELECT id FROM task_progress WHERE task_id = $1 AND child_id = $2 AND completed_at >= $3 AND completed_at < $4',
-      [task_id, child_id, start, end]
+      'SELECT id FROM task_progress WHERE task_id = $1 AND child_id = $2 AND TO_CHAR(completed_at, \'YYYY-MM-DD\') = $3',
+      [task_id, child_id, todayStr]
     );
     
-    if (existing.rows.length > 0) {
-      console.log(`[DEBUG] Tarea ${task_id} ya completada hoy (UTC).`);
-      return res.status(400).json({ message: 'Ya completada hoy' });
-    }
+    if (existing.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
 
     const taskRes = await pool.query('SELECT points FROM tasks WHERE id = $1', [task_id]);
     if (taskRes.rows.length === 0) return res.status(404).json({ message: 'Tarea no encontrada' });
@@ -415,20 +362,19 @@ app.post('/api/tasks/complete', async (req, res) => {
   }
 });
 
+// ✅ CORRECCIÓN DEFINITIVA: Puntaje diario usando TO_CHAR
 app.get('/api/scores/:childId', async (req, res) => {
   const { childId } = req.params;
+  const todayStr = getTodayDateString();
+  
   try {
-    const { start: todayStart } = getUTCTodayRange();
-    
-    const weekAgo = new Date();
-    weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
-    
-    const monthAgo = new Date();
-    monthAgo.setUTCDate(monthAgo.getUTCDate() - 30);
+    const now = new Date();
+    const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
 
     const daily = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2',
-      [childId, todayStart]
+      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND TO_CHAR(completed_at, \'YYYY-MM-DD\') = $2',
+      [childId, todayStr]
     );
 
     const weekly = await pool.query(
@@ -458,14 +404,9 @@ app.get('/api/scores/:childId', async (req, res) => {
   }
 });
 
-// ==========================================
-// RUTAS DE PREMIOS
-// ==========================================
-
 app.post('/api/prizes', authenticateToken, async (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ message: 'Acceso denegado' });
   const { title, description, required_points, reward_type, target_child_id } = req.body;
-
   if (!title || !required_points || !reward_type) return res.status(400).json({ message: 'Faltan datos' });
 
   try {
@@ -474,7 +415,6 @@ app.post('/api/prizes', authenticateToken, async (req, res) => {
       'INSERT INTO rewards (title, description, required_points, reward_type, parent_id, target_child_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
       [title, description || '', required_points, reward_type, req.user.id, finalTargetId]
     );
-    
     res.status(201).json({ message: 'Premio creado', prizeId: result.rows[0].id });
   } catch (error) {
     console.error('Error SQL premio:', error);
@@ -487,12 +427,10 @@ app.get('/api/prizes/child/:childId', async (req, res) => {
   try {
     const scoreRes = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1', [childId]);
     const currentPoints = scoreRes.rows[0].total || 0;
-
     const parentRes = await pool.query('SELECT parent_id FROM users WHERE id = $1', [childId]);
     if (parentRes.rows.length === 0) return res.json([]);
     
     const prizesRes = await pool.query('SELECT * FROM rewards WHERE parent_id = $1', [parentRes.rows[0].parent_id]);
-
     const processedPrizes = prizesRes.rows.filter(prize => {
       if (prize.target_child_id !== null && prize.target_child_id !== undefined) {
         return parseInt(prize.target_child_id) === parseInt(childId);
@@ -507,22 +445,13 @@ app.get('/api/prizes/child/:childId', async (req, res) => {
   }
 });
 
-// ==========================================
-// RUTAS DE INFORMACIÓN
-// ==========================================
-
 app.get('/api/phrases', async (req, res) => {
   const { category } = req.query;
   try {
     let query = 'SELECT phrase FROM motivational_phrases WHERE active = true';
     let params = [];
-    
-    if (category) {
-      query += ' AND category = $1';
-      params.push(category);
-    } else {
-      query += ' ORDER BY RANDOM() LIMIT 1';
-    }
+    if (category) { query += ' AND category = $1'; params.push(category); } 
+    else { query += ' ORDER BY RANDOM() LIMIT 1'; }
     
     const result = await pool.query(query, params);
     if (result.rows.length === 0) return res.json({ phrase: "¡Tú puedes hacerlo!" });
@@ -537,10 +466,7 @@ app.get('/api/neuro-info', async (req, res) => {
   try {
     let query = 'SELECT title, content, category FROM neurodivergence_info WHERE active = true';
     let params = [];
-    if (type) {
-      query += ' AND category = $1';
-      params.push(type);
-    }
+    if (type) { query += ' AND category = $1'; params.push(type); }
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
@@ -548,13 +474,7 @@ app.get('/api/neuro-info', async (req, res) => {
   }
 });
 
-// ==========================================
-// INICIAR SERVIDOR
-// ==========================================
-
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`💾 Conectado a Neon PostgreSQL (Timezone: UTC)`);
-  const { start, end } = getUTCTodayRange();
-  console.log(`📅 Rango UTC de hoy: ${start.toISOString()} a ${end.toISOString()}`);
+  console.log(`💾 Conectado a Neon PostgreSQL`);
 });
