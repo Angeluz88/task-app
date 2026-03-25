@@ -45,12 +45,11 @@ const pool = new Pool({
   connectionTimeoutMillis: 20000,
 });
 
-// Inicializar DB
 async function initDB() {
   let client;
   try {
     client = await pool.connect();
-    console.log('✅ Conectado a Neon PostgreSQL');
+    console.log('✅ Conectado a Neon PostgreSQL (UTC)');
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -106,17 +105,13 @@ async function initDB() {
     `);
     console.log('📦 Tablas listas.');
 
-    // Seed Data
     const countRes = await client.query('SELECT COUNT(*) FROM motivational_phrases');
     if (parseInt(countRes.rows[0].count) === 0) {
       await client.query(`
         INSERT INTO motivational_phrases (phrase, category) VALUES 
-        ('¡Tú puedes con esto!', 'before_task'),
-        ('¡Lo lograste!', 'after_task'),
-        ('Eres único.', 'general');
+        ('¡Tú puedes!', 'before_task'), ('¡Lo lograste!', 'after_task'), ('Eres único', 'general');
         INSERT INTO neurodivergence_info (title, content, category) VALUES 
-        ('Famosos con TDAH', 'Einstein y Disney tenían TDAH.', 'famous_people'),
-        ('Hiperfoco', 'Tu superpoder.', 'curiosity');
+        ('Famosos con TDAH', 'Einstein y Disney tenían TDAH.', 'famous_people');
       `);
     }
   } catch (error) {
@@ -128,7 +123,6 @@ async function initDB() {
 }
 initDB();
 
-// Middleware Auth
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -157,7 +151,7 @@ app.post('/api/register', async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ message: 'Registrado', token, user });
   } catch (error) {
-    res.status(500).json({ message: 'Error registro', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -172,7 +166,7 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    res.status(500).json({ message: 'Error login', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -191,7 +185,7 @@ app.post('/api/children', async (req, res) => {
     );
     res.status(201).json({ message: 'Hijo creado', childId: result.rows[0].id });
   } catch (error) {
-    res.status(500).json({ message: 'Error creando hijo', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -211,7 +205,7 @@ app.post('/api/login-child', async (req, res) => {
     const token = jwt.sign({ id: child.id, role: child.role, parent_id: parentId }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ user: child, token });
   } catch (error) {
-    res.status(500).json({ message: 'Error login hijo', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -227,7 +221,7 @@ app.get('/api/my-children', async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: 'Error obteniendo hijos', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -240,9 +234,9 @@ app.delete('/api/children/:id', async (req, res) => {
     const childRes = await pool.query('SELECT id FROM users WHERE id = $1 AND parent_id = $2', [id, parentRes.rows[0].id]);
     if (childRes.rows.length === 0) return res.status(403).json({ message: 'No autorizado' });
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
-    res.json({ message: 'Hijo eliminado' });
+    res.json({ message: 'Eliminado' });
   } catch (error) {
-    res.status(500).json({ message: 'Error eliminando', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -259,28 +253,28 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
     );
     res.status(201).json({ message: 'Tarea creada', taskId: result.rows[0].id });
   } catch (error) {
-    res.status(500).json({ message: 'Error creando tarea', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// ✅ CORRECCIÓN DEFINITIVA: Usar DATE_TRUNC en SQL para comparar solo el día
+// ✅ CORRECCIÓN DEFINITIVA: Usar DATE_TRUNC en SQL para comparar solo el DÍA
 app.get('/api/tasks/child/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
+    // La consulta compara el día de 'completed_at' con el día de 'NOW()' en el servidor
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
              (SELECT COUNT(*) FROM task_progress tp 
               WHERE tp.task_id = t.id 
                 AND tp.child_id = $1 
-                AND DATE_TRUNC('day', tp.completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
-             ) as completed_today
+                AND DATE_TRUNC('day', tp.completed_at) = DATE_TRUNC('day', NOW())) as completed_today
       FROM tasks t
       WHERE t.assigned_to = $1
       ORDER BY t.created_at DESC
     `, [childId]);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: 'Error obteniendo tareas', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -290,27 +284,30 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, u.name as child_name, t.assigned_to
       FROM tasks t JOIN users u ON t.assigned_to = u.id
-      WHERE t.created_by = $1 ORDER BY t.created_at DESC
-    `, [req.user.id]);
+      WHERE t.created_by = $1 ORDER BY t.created_at DESC`, [req.user.id]);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: 'Error obteniendo tareas', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-// ✅ CORRECCIÓN DEFINITIVA: Verificar existencia usando DATE_TRUNC en SQL
+// ✅ CORRECCIÓN DEFINITIVA: Insertar y verificar usando DATE_TRUNC
 app.post('/api/tasks/complete', async (req, res) => {
   const { task_id, child_id } = req.body;
   if (!task_id || !child_id) return res.status(400).json({ message: 'Datos requeridos' });
+
   try {
-    // Verificar si ya completó HOY (usando UTC para consistencia)
-    const existing = await pool.query(`
-      SELECT id FROM task_progress 
-      WHERE task_id = $1 AND child_id = $2 
-      AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
-    `, [task_id, child_id]);
+    // Verificar si ya existe un registro HOY según el reloj del servidor
+    const existing = await pool.query(
+      `SELECT id FROM task_progress 
+       WHERE task_id = $1 AND child_id = $2 
+       AND DATE_TRUNC('day', completed_at) = DATE_TRUNC('day', NOW())`,
+      [task_id, child_id]
+    );
     
-    if (existing.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ message: 'Ya completada hoy' });
+    }
 
     const taskRes = await pool.query('SELECT points FROM tasks WHERE id = $1', [task_id]);
     if (taskRes.rows.length === 0) return res.status(404).json({ message: 'Tarea no encontrada' });
@@ -319,27 +316,39 @@ app.post('/api/tasks/complete', async (req, res) => {
       'INSERT INTO task_progress (task_id, child_id, points_earned, completed_at) VALUES ($1, $2, $3, NOW())',
       [task_id, child_id, taskRes.rows[0].points]
     );
+
     res.json({ message: '¡Tarea completada!', points_earned: taskRes.rows[0].points });
   } catch (error) {
-    res.status(500).json({ message: 'Error completando tarea', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
 app.get('/api/scores/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
-    // Diario: Usar DATE_TRUNC para asegurar consistencia
-    const daily = await pool.query(`
-      SELECT SUM(points_earned) as total FROM task_progress 
-      WHERE child_id = $1 AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
-    `, [childId]);
-
-    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
-
-    const weekly = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, weekAgo]);
-    const monthly = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, monthAgo]);
-    const total = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1', [childId]);
+    // Puntaje diario: mismo día que hoy
+    const daily = await pool.query(
+      `SELECT SUM(points_earned) as total FROM task_progress 
+       WHERE child_id = $1 AND DATE_TRUNC('day', completed_at) = DATE_TRUNC('day', NOW())`,
+      [childId]
+    );
+    // Semanal: últimos 7 días
+    const weekly = await pool.query(
+      `SELECT SUM(points_earned) as total FROM task_progress 
+       WHERE child_id = $1 AND completed_at >= NOW() - INTERVAL '7 days'`,
+      [childId]
+    );
+    // Mensual: últimos 30 días
+    const monthly = await pool.query(
+      `SELECT SUM(points_earned) as total FROM task_progress 
+       WHERE child_id = $1 AND completed_at >= NOW() - INTERVAL '30 days'`,
+      [childId]
+    );
+    // Total
+    const total = await pool.query(
+      `SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1`,
+      [childId]
+    );
 
     res.json({
       daily: daily.rows[0].total || 0,
@@ -348,7 +357,7 @@ app.get('/api/scores/:childId', async (req, res) => {
       total: total.rows[0].total || 0
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error obteniendo puntajes', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -364,7 +373,7 @@ app.post('/api/prizes', authenticateToken, async (req, res) => {
     );
     res.status(201).json({ message: 'Premio creado', prizeId: result.rows[0].id });
   } catch (error) {
-    res.status(500).json({ message: 'Error creando premio', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -384,7 +393,7 @@ app.get('/api/prizes/child/:childId', async (req, res) => {
     }).map(prize => ({ ...prize, is_unlocked: currentPoints >= prize.required_points }));
     res.json(processedPrizes);
   } catch (error) {
-    res.status(500).json({ message: 'Error obteniendo premios', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -393,13 +402,17 @@ app.get('/api/phrases', async (req, res) => {
   try {
     let query = 'SELECT phrase FROM motivational_phrases WHERE active = true';
     let params = [];
-    if (category) { query += ' AND category = $1'; params.push(category); } 
-    else { query += ' ORDER BY RANDOM() LIMIT 1'; }
+    if (category) {
+      query += ' AND category = $1';
+      params.push(category);
+    } else {
+      query += ' ORDER BY RANDOM() LIMIT 1';
+    }
     const result = await pool.query(query, params);
-    if (result.rows.length === 0) return res.json({ phrase: "¡Tú puedes!" });
+    if (result.rows.length === 0) return res.json({ phrase: "¡Tú puedes hacerlo!" });
     res.json(result.rows[Math.floor(Math.random() * result.rows.length)]);
   } catch (error) {
-    res.status(500).json({ message: 'Error frases', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -408,15 +421,17 @@ app.get('/api/neuro-info', async (req, res) => {
   try {
     let query = 'SELECT title, content, category FROM neurodivergence_info WHERE active = true';
     let params = [];
-    if (type) { query += ' AND category = $1'; params.push(type); }
+    if (type) {
+      query += ' AND category = $1';
+      params.push(type);
+    }
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
-    res.status(500).json({ message: 'Error info', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor en puerto ${PORT}`);
-  console.log(`💾 Neon PostgreSQL conectado`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
