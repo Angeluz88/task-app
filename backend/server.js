@@ -37,21 +37,25 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-// Corrección SSL: Usar verify-full explícitamente o rejectUnauthorized: false para desarrollo
 const pool = new Pool({
   connectionString: databaseUrl,
   ssl: {
-    rejectUnauthorized: false // Necesario para Neon en planes gratuitos
+    rejectUnauthorized: false // Requerido para Neon
   },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 20000,
 });
 
-// Función auxiliar para obtener el inicio del día en UTC estricto
-function getUTCTodayStart() {
+// Función auxiliar para obtener el rango del día actual en UTC estricto
+function getUTCTodayRange() {
   const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  // Forzamos UTC para evitar problemas de zona horaria entre cliente y servidor
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(start);
+  end.setUTCHours(23, 59, 59, 999);
+  
+  return { start, end };
 }
 
 // Función para iniciar DB con reintentos
@@ -59,7 +63,7 @@ async function initDB() {
   let client;
   try {
     client = await pool.connect();
-    console.log('✅ Conectado exitosamente a Neon PostgreSQL');
+    console.log('✅ Conectado exitosamente a Neon PostgreSQL (UTC)');
     
     // Crear Tablas si no existen
     await client.query(`
@@ -121,7 +125,7 @@ async function initDB() {
     `);
     console.log('📦 Tablas verificadas/creadas correctamente.');
 
-    // Seed Data (Datos de ejemplo)
+    // Seed Data
     const countRes = await client.query('SELECT COUNT(*) FROM motivational_phrases');
     if (parseInt(countRes.rows[0].count) === 0) {
       console.log('🌱 Insertando datos de ejemplo...');
@@ -333,7 +337,7 @@ app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Verificar que la tarea pertenece al padre autenticado
+    // Verificar que la tarea fue creada por este padre
     const taskRes = await pool.query('SELECT id FROM tasks WHERE id = $1 AND created_by = $2', [id, req.user.id]);
     
     if (taskRes.rows.length === 0) {
@@ -351,20 +355,17 @@ app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
 app.get('/api/tasks/child/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
-    // Obtenemos el inicio del día en UTC para comparar
-    const todayStart = getUTCTodayStart();
+    const { start, end } = getUTCTodayRange();
     
-    // Usamos DATE_TRUNC para asegurar comparación solo por día en UTC
+    // Usamos BETWEEN para verificar si hay registros hoy en UTC
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
              (SELECT COUNT(*) FROM task_progress tp 
-              WHERE tp.task_id = t.id AND tp.child_id = $1 
-              AND DATE_TRUNC('day', tp.completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', $2 AT TIME ZONE 'UTC')
-             ) as completed_today
+              WHERE tp.task_id = t.id AND tp.child_id = $1 AND tp.completed_at >= $2 AND tp.completed_at <= $3) as completed_today
       FROM tasks t
       WHERE t.assigned_to = $1
       ORDER BY t.created_at DESC
-    `, [childId, todayStart]);
+    `, [childId, start, end]);
     
     res.json(result.rows);
   } catch (error) {
@@ -398,14 +399,12 @@ app.post('/api/tasks/complete', async (req, res) => {
   if (!task_id || !child_id) return res.status(400).json({ message: 'Datos requeridos' });
 
   try {
-    const todayStart = getUTCTodayStart();
-
-    // Verificar duplicados usando DATE_TRUNC en UTC
+    const { start, end } = getUTCTodayRange();
+    
+    // Verificar si ya completó hoy usando el rango exacto en UTC
     const existing = await pool.query(
-      `SELECT id FROM task_progress 
-       WHERE task_id = $1 AND child_id = $2 
-       AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', $3 AT TIME ZONE 'UTC')`,
-      [task_id, child_id, todayStart]
+      'SELECT id FROM task_progress WHERE task_id = $1 AND child_id = $2 AND completed_at >= $3 AND completed_at <= $4',
+      [task_id, child_id, start, end]
     );
     
     if (existing.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
@@ -413,15 +412,12 @@ app.post('/api/tasks/complete', async (req, res) => {
     const taskRes = await pool.query('SELECT points FROM tasks WHERE id = $1', [task_id]);
     if (taskRes.rows.length === 0) return res.status(404).json({ message: 'Tarea no encontrada' });
     
-    const points = taskRes.rows[0].points;
-
     await pool.query(
       'INSERT INTO task_progress (task_id, child_id, points_earned, completed_at) VALUES ($1, $2, $3, NOW())',
-      [task_id, child_id, points]
+      [task_id, child_id, taskRes.rows[0].points]
     );
 
-    // IMPORTANTE: Devolver el objeto correcto para que el frontend lea response.points_earned
-    res.json({ message: '¡Tarea completada!', points_earned: points });
+    res.json({ message: '¡Tarea completada!', points_earned: taskRes.rows[0].points });
   } catch (error) {
     console.error('Error completando tarea:', error);
     res.status(500).json({ message: 'Error al completar tarea', error: error.message });
@@ -432,7 +428,7 @@ app.get('/api/scores/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
     const now = new Date();
-    const todayStart = getUTCTodayStart();
+    const { start: todayStart } = getUTCTodayRange();
     
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -441,7 +437,7 @@ app.get('/api/scores/:childId', async (req, res) => {
     monthAgo.setDate(monthAgo.getDate() - 30);
 
     const daily = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND DATE_TRUNC(' + "'day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', $2 AT TIME ZONE 'UTC')",
+      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2',
       [childId, todayStart]
     );
 
@@ -568,5 +564,5 @@ app.get('/api/neuro-info', async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`💾 Conectado a Neon PostgreSQL (UTC)`);
+  console.log(`💾 Conectado a Neon PostgreSQL`);
 });
