@@ -37,9 +37,10 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
-// Configuración SSL explícita para evitar warnings y errores
+// Añadimos sslmode=verify-full explícitamente para silenciar la advertencia
+// y aseguramos que rejectUnauthorized sea false para Neon (certificados autofirmados a veces)
 const pool = new Pool({
-  connectionString: databaseUrl,
+  connectionString: databaseUrl.includes('?') ? `${databaseUrl}&sslmode=verify-full` : `${databaseUrl}?sslmode=verify-full`,
   ssl: {
     rejectUnauthorized: false 
   },
@@ -114,7 +115,6 @@ async function initDB() {
     `);
     console.log('📦 Tablas listas.');
 
-    // Seed Data
     const countRes = await client.query('SELECT COUNT(*) FROM motivational_phrases');
     if (parseInt(countRes.rows[0].count) === 0) {
       await client.query(`
@@ -124,7 +124,7 @@ async function initDB() {
         ('Eres único.', 'general');
         INSERT INTO neurodivergence_info (title, content, category) VALUES 
         ('Famosos con TDAH', 'Einstein y Disney tenían TDAH.', 'famous_people'),
-        ('Hiperfoco', 'Un superpoder de concentración.', 'curiosity');
+        ('Hiperfoco', 'Tu superpoder.', 'curiosity');
       `);
     }
   } catch (error) {
@@ -166,7 +166,6 @@ app.post('/api/register', async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ message: 'Registrado', token, user });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error registro', error: error.message });
   }
 });
@@ -182,7 +181,6 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error login', error: error.message });
   }
 });
@@ -202,7 +200,6 @@ app.post('/api/children', async (req, res) => {
     );
     res.status(201).json({ message: 'Hijo creado', childId: result.rows[0].id });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error crear hijo', error: error.message });
   }
 });
@@ -223,7 +220,6 @@ app.post('/api/login-child', async (req, res) => {
     const token = jwt.sign({ id: child.id, role: child.role, parent_id: parentId }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ user: child, token });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error login hijo', error: error.message });
   }
 });
@@ -272,16 +268,15 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
     );
     res.status(201).json({ message: 'Tarea creada', taskId: result.rows[0].id });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error crear tarea', error: error.message });
   }
 });
 
-// CORRECCIÓN DEFINITIVA: Comparación de fechas robusta en UTC
+// ✅ CORRECCIÓN DEFINITIVA DE FECHAS
 app.get('/api/tasks/child/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
-    // Usamos DATE_TRUNC para obtener el día actual en UTC exactamente como lo guarda la DB
+    // Usamos DATE_TRUNC para comparar SOLO el día en UTC, ignorando la hora
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
              (SELECT COUNT(*) FROM task_progress tp 
@@ -293,10 +288,8 @@ app.get('/api/tasks/child/:childId', async (req, res) => {
       WHERE t.assigned_to = $1
       ORDER BY t.created_at DESC
     `, [childId]);
-    
     res.json(result.rows);
   } catch (error) {
-    console.error('Error tareas:', error);
     res.status(500).json({ message: 'Error obtener tareas', error: error.message });
   }
 });
@@ -315,22 +308,18 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
   }
 });
 
-// CORRECCIÓN DEFINITIVA: Verificación de duplicados en UTC
 app.post('/api/tasks/complete', async (req, res) => {
   const { task_id, child_id } = req.body;
   if (!task_id || !child_id) return res.status(400).json({ message: 'Datos requeridos' });
-
   try {
-    // Verificar si ya existe un registro HOY (en UTC)
+    // Verificación robusta usando DATE_TRUNC
     const existing = await pool.query(`
       SELECT id FROM task_progress 
       WHERE task_id = $1 AND child_id = $2 
         AND DATE_TRUNC('day', completed_at AT TIME ZONE 'UTC') = DATE_TRUNC('day', NOW() AT TIME ZONE 'UTC')
     `, [task_id, child_id]);
     
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ message: 'Ya completada hoy' });
-    }
+    if (existing.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
 
     const taskRes = await pool.query('SELECT points FROM tasks WHERE id = $1', [task_id]);
     if (taskRes.rows.length === 0) return res.status(404).json({ message: 'Tarea no encontrada' });
@@ -339,10 +328,8 @@ app.post('/api/tasks/complete', async (req, res) => {
       'INSERT INTO task_progress (task_id, child_id, points_earned, completed_at) VALUES ($1, $2, $3, NOW())',
       [task_id, child_id, taskRes.rows[0].points]
     );
-
     res.json({ message: '¡Tarea completada!', points_earned: taskRes.rows[0].points });
   } catch (error) {
-    console.error('Error completar:', error);
     res.status(500).json({ message: 'Error completar tarea', error: error.message });
   }
 });
@@ -351,28 +338,14 @@ app.get('/api/scores/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
     const now = new Date();
-    // Inicio del día en UTC
-    const startOfDayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
     const monthAgo = new Date(now); monthAgo.setDate(monthAgo.getDate() - 30);
 
-    const daily = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2',
-      [childId, startOfDayUTC]
-    );
-    const weekly = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2',
-      [childId, weekAgo]
-    );
-    const monthly = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2',
-      [childId, monthAgo]
-    );
-    const total = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1',
-      [childId]
-    );
+    const daily = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, todayStart]);
+    const weekly = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, weekAgo]);
+    const monthly = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2', [childId, monthAgo]);
+    const total = await pool.query('SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1', [childId]);
 
     res.json({
       daily: daily.rows[0].total || 0,
@@ -381,7 +354,6 @@ app.get('/api/scores/:childId', async (req, res) => {
       total: total.rows[0].total || 0
     });
   } catch (error) {
-    console.error('Error scores:', error);
     res.status(500).json({ message: 'Error obtener puntajes', error: error.message });
   }
 });
@@ -398,7 +370,6 @@ app.post('/api/prizes', authenticateToken, async (req, res) => {
     );
     res.status(201).json({ message: 'Premio creado', prizeId: result.rows[0].id });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error crear premio', error: error.message });
   }
 });
@@ -419,7 +390,6 @@ app.get('/api/prizes/child/:childId', async (req, res) => {
     }).map(prize => ({ ...prize, is_unlocked: currentPoints >= prize.required_points }));
     res.json(processedPrizes);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Error obtener premios', error: error.message });
   }
 });
