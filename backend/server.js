@@ -42,15 +42,28 @@ const pool = new Pool({
   ssl: {
     rejectUnauthorized: false // Requerido para Neon
   },
-  max: 20, // Máximo número de conexiones
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 20000,
 });
 
+// Función auxiliar para obtener el rango del día actual en UTC/Local
+function getTodayRange() {
+  const now = new Date();
+  // Inicio del día (00:00:00)
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Fin del día (23:59:59.999)
+  const end = new Date(start);
+  end.setHours(23, 59, 59, 999);
+  
+  return { start, end };
+}
+
 // Función para iniciar DB con reintentos
 async function initDB() {
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     console.log('✅ Conectado exitosamente a Neon PostgreSQL');
     
     // Crear Tablas si no existen
@@ -129,12 +142,12 @@ async function initDB() {
       `);
     }
 
-    client.release();
   } catch (error) {
     console.error('❌ Error iniciando DB:', error.message);
-    console.error('🔍 Detalles:', error.stack);
     // Reintentar en 5 segundos
     setTimeout(initDB, 5000);
+  } finally {
+    if (client) client.release();
   }
 }
 
@@ -292,7 +305,7 @@ app.delete('/api/children/:id', async (req, res) => {
 });
 
 // ==========================================
-// RUTAS DE TAREAS
+// RUTAS DE TAREAS (CORREGIDO FECHAS)
 // ==========================================
 
 app.post('/api/tasks', authenticateToken, async (req, res) => {
@@ -322,19 +335,21 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
 app.get('/api/tasks/child/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const { start, end } = getTodayRange();
     
+    // Usamos BETWEEN para verificar si hay registros hoy
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
              (SELECT COUNT(*) FROM task_progress tp 
-              WHERE tp.task_id = t.id AND tp.child_id = $1 AND DATE(tp.completed_at) = $2) as completed_today
+              WHERE tp.task_id = t.id AND tp.child_id = $1 AND tp.completed_at >= $2 AND tp.completed_at <= $3) as completed_today
       FROM tasks t
       WHERE t.assigned_to = $1
       ORDER BY t.created_at DESC
-    `, [childId, today]);
+    `, [childId, start, end]);
     
     res.json(result.rows);
   } catch (error) {
+    console.error('Error obteniendo tareas:', error);
     res.status(500).json({ message: 'Error al obtener tareas', error: error.message });
   }
 });
@@ -356,7 +371,7 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
 });
 
 // ==========================================
-// RUTAS DE PROGRESO
+// RUTAS DE PROGRESO (CORREGIDO FECHAS)
 // ==========================================
 
 app.post('/api/tasks/complete', async (req, res) => {
@@ -364,11 +379,12 @@ app.post('/api/tasks/complete', async (req, res) => {
   if (!task_id || !child_id) return res.status(400).json({ message: 'Datos requeridos' });
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const { start, end } = getTodayRange();
     
+    // Verificar si ya completó hoy usando el rango exacto
     const existing = await pool.query(
-      'SELECT id FROM task_progress WHERE task_id = $1 AND child_id = $2 AND DATE(completed_at) = $3',
-      [task_id, child_id, today]
+      'SELECT id FROM task_progress WHERE task_id = $1 AND child_id = $2 AND completed_at >= $3 AND completed_at <= $4',
+      [task_id, child_id, start, end]
     );
     
     if (existing.rows.length > 0) return res.status(400).json({ message: 'Ya completada hoy' });
@@ -392,7 +408,7 @@ app.get('/api/scores/:childId', async (req, res) => {
   const { childId } = req.params;
   try {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const { start: todayStart } = getTodayRange();
     
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -401,7 +417,7 @@ app.get('/api/scores/:childId', async (req, res) => {
     monthAgo.setDate(monthAgo.getDate() - 30);
 
     const daily = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND DATE(completed_at) = DATE($2)',
+      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= $2',
       [childId, todayStart]
     );
 
