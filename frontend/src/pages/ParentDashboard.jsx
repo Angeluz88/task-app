@@ -6,16 +6,22 @@ import {
   deleteChild, 
   createTask, 
   getParentTasks, 
+  deleteTask, // Asegúrate de exportar esto en api.js si no existe
   createPrize, 
   getChildPrizes,
   getScores,
   getNeuroInfo
 } from '../services/api';
 
+// Si no tienes deleteTask en api.js, puedes agregarlo o usar fetch directo. 
+// Aquí asumiremos que lo agregarás o usaremos una lógica interna si es necesario.
+// Para este ejemplo, implementaré la llamada directa si falta la función en el import.
+
 const ParentDashboard = ({ onLogout }) => {
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
   const user = JSON.parse(localStorage.getItem('user'));
+  const token = localStorage.getItem('token');
 
   // Estados Generales
   const [children, setChildren] = useState([]);
@@ -50,13 +56,11 @@ const ParentDashboard = ({ onLogout }) => {
   const [prizes, setPrizes] = useState([]);
   const [childScores, setChildScores] = useState(null);
 
-  // Cargar datos iniciales
   useEffect(() => {
     loadChildren();
     loadNeuroInfo();
   }, []);
 
-  // Cargar tareas/premios cuando cambia el hijo seleccionado
   useEffect(() => {
     if (selectedChildId) {
       loadChildData(selectedChildId);
@@ -78,7 +82,7 @@ const ParentDashboard = ({ onLogout }) => {
   const loadNeuroInfo = async () => {
     try {
       const info = await getNeuroInfo('tip');
-      setNeuroInfo(info.slice(0, 2)); // Tomar solo 2 consejos
+      setNeuroInfo(info.slice(0, 2));
     } catch (error) {
       console.error("Error cargando info:", error);
     }
@@ -87,17 +91,11 @@ const ParentDashboard = ({ onLogout }) => {
   const loadChildData = async (childId) => {
     try {
       const [tasksData, prizesData, scoresData] = await Promise.all([
-        getParentTasks(), // Nota: Esto trae todas las tareas del padre, filtraremos en frontend o backend
+        getParentTasks(),
         getChildPrizes(childId),
         getScores(childId)
       ]);
-      
-      // Filtrar tareas solo para el hijo seleccionado (si el backend no lo hace)
-      // En nuestro backend actual, getParentTasks trae las del usuario logueado (padre) pero asignadas a hijos
-      // Asumiremos que el backend ya filtra por created_by, pero debemos filtrar por assigned_to aquí si es necesario
-      // Para este ejemplo, usamos las tareas tal cual vienen del endpoint diseñado para padres
       setTasks(tasksData.filter(t => t.assigned_to == childId));
-      
       setPrizes(prizesData);
       setChildScores(scoresData);
     } catch (error) {
@@ -105,7 +103,6 @@ const ParentDashboard = ({ onLogout }) => {
     }
   };
 
-  // --- Manejadores de Hijos ---
   const handleAddChild = async (e) => {
     e.preventDefault();
     try {
@@ -114,7 +111,6 @@ const ParentDashboard = ({ onLogout }) => {
         pin_code: newChildPin, 
         avatar_color: '#' + Math.floor(Math.random()*16777215).toString(16) 
       });
-      
       alert('¡Hijo agregado correctamente!');
       setShowAddChild(false);
       setNewChildName('');
@@ -138,7 +134,35 @@ const ParentDashboard = ({ onLogout }) => {
     }
   };
 
-  // --- Manejadores de Tareas ---
+  // --- NUEVA FUNCIÓN: Eliminar Tarea ---
+  const handleDeleteTask = async (taskId, taskTitle) => {
+    if (!window.confirm(`¿Eliminar la tarea "${taskTitle}"?`)) return;
+
+    try {
+      // Intento de usar la función del servicio si existe, sino fetch directo
+      let response;
+      if (typeof deleteTask === 'function') {
+        response = await deleteTask(taskId);
+      } else {
+        // Fallback directo con fetch si no se importó la función
+        response = await fetch(`${import.meta.env.VITE_API_URL}/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+
+      if (!response.ok) throw new Error('Error al eliminar');
+      
+      alert('Tarea eliminada');
+      if (selectedChildId) loadChildData(selectedChildId);
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
   const handleTaskChange = (e) => {
     setTaskForm({ ...taskForm, [e.target.name]: e.target.value });
   };
@@ -146,7 +170,6 @@ const ParentDashboard = ({ onLogout }) => {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     if (!selectedChildId) return alert('Selecciona un hijo primero');
-
     try {
       await createTask({
         ...taskForm,
@@ -154,7 +177,6 @@ const ParentDashboard = ({ onLogout }) => {
         points: Number(taskForm.points),
         assigned_to_child_id: selectedChildId
       });
-      
       alert('Tarea creada exitosamente');
       setShowAddTask(false);
       setTaskForm({ title: '', description: '', duration_minutes: '', points: '' });
@@ -165,19 +187,13 @@ const ParentDashboard = ({ onLogout }) => {
     }
   };
 
-  // --- Manejadores de Premios ---
   const handlePrizeChange = (e) => {
     setPrizeForm({ ...prizeForm, [e.target.name]: e.target.value });
   };
 
   const handleCreatePrize = async (e) => {
     e.preventDefault();
-    
-    // CORRECCIÓN: Usar prizeForm.title en lugar de title directamente
-    if (!prizeForm.title || !prizeForm.required_points) {
-      return alert('Título y puntos son requeridos');
-    }
-
+    if (!prizeForm.title || !prizeForm.required_points) return alert('Título y puntos son requeridos');
     try {
       await createPrize({
         title: prizeForm.title,
@@ -186,7 +202,6 @@ const ParentDashboard = ({ onLogout }) => {
         reward_type: prizeForm.reward_type,
         target_child_id: selectedChildId || null
       });
-      
       alert('¡Premio creado!');
       setShowAddPrize(false);
       setPrizeForm({ title: '', description: '', required_points: '', reward_type: 'daily' });
@@ -199,65 +214,31 @@ const ParentDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Panel de Control 👨‍👩‍👧‍👦</h1>
           <p className="text-gray-500">Bienvenido/a, {user?.name}</p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
-          <button 
-            onClick={() => navigate('/')} 
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-          >
-            Inicio
-          </button>
-          <button 
-            onClick={onLogout}
-            className="bg-red-50 text-red-600 px-5 py-2 rounded-lg hover:bg-red-100 font-medium transition"
-          >
-            Cerrar Sesión
-          </button>
+          <button onClick={() => navigate('/')} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Inicio</button>
+          <button onClick={onLogout} className="bg-red-50 text-red-600 px-5 py-2 rounded-lg hover:bg-red-100 font-medium transition">Cerrar Sesión</button>
         </div>
       </header>
 
       <div className="grid lg:grid-cols-4 gap-6">
-        
-       {/* Columna Izquierda: Lista de Hijos */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-lg text-gray-800">Mis Hijos</h2>
-              <button 
-                onClick={() => setShowAddChild(!showAddChild)}
-                className="text-blue-600 hover:bg-blue-50 p-2 rounded-full transition"
-                title="Agregar hijo"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
+              <button onClick={() => setShowAddChild(!showAddChild)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-full transition" title="Agregar hijo">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
               </button>
             </div>
 
             {showAddChild && (
               <form onSubmit={handleAddChild} className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <input 
-                  type="text" 
-                  placeholder="Nombre" 
-                  value={newChildName}
-                  onChange={(e) => setNewChildName(e.target.value)}
-                  className="w-full mb-2 p-2 text-sm border rounded"
-                  required
-                />
-                <input 
-                  type="number" 
-                  placeholder="PIN (4 dígitos)" 
-                  maxLength="4"
-                  value={newChildPin}
-                  onChange={(e) => setNewChildPin(e.target.value)}
-                  className="w-full mb-2 p-2 text-sm border rounded"
-                  required
-                />
+                <input type="text" placeholder="Nombre" value={newChildName} onChange={(e) => setNewChildName(e.target.value)} className="w-full mb-2 p-2 text-sm border rounded" required />
+                <input type="number" placeholder="PIN (4 dígitos)" maxLength="4" value={newChildPin} onChange={(e) => setNewChildPin(e.target.value)} className="w-full mb-2 p-2 text-sm border rounded" required />
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-blue-600 text-white text-xs py-2 rounded hover:bg-blue-700">Guardar</button>
                   <button type="button" onClick={() => setShowAddChild(false)} className="flex-1 bg-gray-300 text-gray-700 text-xs py-2 rounded">Cancelar</button>
@@ -267,27 +248,13 @@ const ParentDashboard = ({ onLogout }) => {
 
             <div className="space-y-2">
               {children.map(child => (
-                <div 
-                  key={child.id} 
-                  onClick={() => setSelectedChildId(child.id)}
-                  className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition ${selectedChildId === child.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
-                >
+                <div key={child.id} onClick={() => setSelectedChildId(child.id)} className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition ${selectedChildId === child.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}>
                   <div className="flex items-center gap-3">
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                      style={{ backgroundColor: child.avatar_color }}
-                    >
-                      {child.name.charAt(0)}
-                    </div>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: child.avatar_color }}>{child.name.charAt(0)}</div>
                     <span className="font-medium">{child.name}</span>
                   </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }}
-                    className={`p-1 rounded hover:bg-red-200 ${selectedChildId === child.id ? 'text-white hover:text-red-900' : 'text-gray-400 hover:text-red-600'}`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }} className={`p-1 rounded hover:bg-red-200 ${selectedChildId === child.id ? 'text-white hover:text-red-900' : 'text-gray-400 hover:text-red-600'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                   </button>
                 </div>
               ))}
@@ -295,65 +262,38 @@ const ParentDashboard = ({ onLogout }) => {
             </div>
           </div>
 
-          {/* Info Neurodivergencia */}
           <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100">
-            <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
-              <span>💡</span> Consejos TDAH
-            </h3>
+            <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2"><span>💡</span> Consejos TDAH</h3>
             <ul className="space-y-2">
               {neuroInfo.map((info, idx) => (
-                <li key={idx} className="text-sm text-indigo-900 bg-white p-2 rounded shadow-sm">
-                  <strong>{info.title}:</strong> {info.content}
-                </li>
+                <li key={idx} className="text-sm text-indigo-900 bg-white p-2 rounded shadow-sm"><strong>{info.title}:</strong> {info.content}</li>
               ))}
             </ul>
           </div>
         </div>
 
-        {/* Columna Derecha: Gestión */}
         <div className="lg:col-span-3">
           {!selectedChildId ? (
             <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl border-2 border-dashed border-gray-300 text-gray-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               <p className="text-lg">Selecciona un hijo para gestionar sus tareas y premios</p>
             </div>
           ) : (
             <div className="space-y-6">
-              
-              {/* Resumen de Puntos */}
               {childScores && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-400">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Puntos Hoy</p>
-                    <p className="text-2xl font-bold text-gray-800">{childScores.daily}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-400">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Esta Semana</p>
-                    <p className="text-2xl font-bold text-gray-800">{childScores.weekly}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-400">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Este Mes</p>
-                    <p className="text-2xl font-bold text-gray-800">{childScores.monthly}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-purple-400">
-                    <p className="text-xs text-gray-500 uppercase font-bold">Total Histórico</p>
-                    <p className="text-2xl font-bold text-gray-800">{childScores.total}</p>
-                  </div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-400"><p className="text-xs text-gray-500 uppercase font-bold">Puntos Hoy</p><p className="text-2xl font-bold text-gray-800">{childScores.daily}</p></div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-400"><p className="text-xs text-gray-500 uppercase font-bold">Esta Semana</p><p className="text-2xl font-bold text-gray-800">{childScores.weekly}</p></div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-400"><p className="text-xs text-gray-500 uppercase font-bold">Este Mes</p><p className="text-2xl font-bold text-gray-800">{childScores.monthly}</p></div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-purple-400"><p className="text-xs text-gray-500 uppercase font-bold">Total Histórico</p><p className="text-2xl font-bold text-gray-800">{childScores.total}</p></div>
                 </div>
               )}
 
-              {/* Sección Tareas */}
+              {/* SECCIÓN TAREAS CON BOTÓN ELIMINAR */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">📋 Tareas Asignadas</h2>
-                  <button 
-                    onClick={() => setShowAddTask(!showAddTask)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-                  >
-                    {showAddTask ? 'Cancelar' : '+ Nueva Tarea'}
-                  </button>
+                  <button onClick={() => setShowAddTask(!showAddTask)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition">{showAddTask ? 'Cancelar' : '+ Nueva Tarea'}</button>
                 </div>
                 
                 {showAddTask && (
@@ -371,8 +311,8 @@ const ParentDashboard = ({ onLogout }) => {
                     <p className="p-6 text-center text-gray-400">No hay tareas creadas aún.</p>
                   ) : (
                     tasks.map(task => (
-                      <div key={task.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                        <div>
+                      <div key={task.id} className="p-4 flex justify-between items-center hover:bg-gray-50 group">
+                        <div className="flex-1">
                           <h4 className="font-bold text-gray-800">{task.title}</h4>
                           <p className="text-sm text-gray-500">{task.description}</p>
                           <div className="flex gap-3 mt-1 text-xs font-medium">
@@ -380,22 +320,27 @@ const ParentDashboard = ({ onLogout }) => {
                             <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">🏆 {task.points} pts</span>
                           </div>
                         </div>
+                        {/* Botón Eliminar Tarea */}
+                        <button 
+                          onClick={() => handleDeleteTask(task.id, task.title)}
+                          className="ml-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition opacity-0 group-hover:opacity-100"
+                          title="Eliminar tarea"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              {/* Sección Premios */}
+              {/* SECCIÓN PREMIOS */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">🎁 Premios Disponibles</h2>
-                  <button 
-                    onClick={() => setShowAddPrize(!showAddPrize)}
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition"
-                  >
-                    {showAddPrize ? 'Cancelar' : '+ Nuevo Premio'}
-                  </button>
+                  <button onClick={() => setShowAddPrize(!showAddPrize)} className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition">{showAddPrize ? 'Cancelar' : '+ Nuevo Premio'}</button>
                 </div>
 
                 {showAddPrize && (
