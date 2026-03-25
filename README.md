@@ -1,130 +1,61 @@
-# TDAH App - Gestión de Tareas con Temporizador y Puntajes
+# 🧠 Task App TDAH - Sistema de Gestión de Tareas Gamificado
 
-Aplicación PWA diseñada para ayudar a niños con TDAH a gestionar sus tareas diarias mediante temporizadores, puntajes y un sistema de recompensas.
+Una aplicación web progresiva (PWA) diseñada para ayudar a niños con TDAH (Trastorno por Déficit de Atención e Hiperactividad) a gestionar sus tareas diarias mediante gamificación, temporizadores visuales y un sistema de recompensas.
 
-## Características
+## 🚀 Características Principales
 
-### Para Padres:
-- ✅ Crear, editar y eliminar tareas con duración y puntaje personalizado
-- ✅ Definir premios diarios, semanales y mensuales según puntajes
-- ✅ Ver el progreso y puntajes de los hijos
-- ✅ Acceder a información sobre neurodivergencia y famosos neurodivergentes
+### 👨‍👩‍👧‍👦 Para los Padres
+- **Gestión de Hijos**: Registro ilimitado de hijos con avatares personalizados y PIN de acceso.
+- **Creación de Tareas**: Asigna tareas con tiempo estimado y puntos de recompensa.
+- **Sistema de Premios**: Configura premios diarios, semanales o mensuales canjeables por puntos.
+- **Seguimiento**: Visualiza el progreso, puntajes acumulados y historial de completitud.
+- **Recursos**: Acceso a consejos sobre neurodivergencia y frases motivadoras.
 
-### Para Hijos:
-- ✅ Ver tareas asignadas con temporizador integrado
-- ✅ Iniciar y completar tareas
-- ✅ Acumular puntajes diarios, semanales y mensuales
-- ✅ Ver premios disponibles
-- ✅ Recibir frases motivadoras
-- ✅ Leer curiosidades sobre neurodivergencia
+### 🧒 Para los Niños
+- **Interfaz Amigable**: Diseño colorido, simple y libre de distracciones.
+- **Temporizador Visual**: Herramienta integrada para fomentar la concentración (Técnica Pomodoro adaptada).
+- **Gamificación**: Gana puntos al completar tareas y desbloquea premios.
+- **Motivación**: Frases positivas y datos curiosos sobre el cerebro TDAH.
+- **Acceso Rápido**: Login seguro mediante nombre o PIN de 4 dígitos.
 
-## Tecnologías
+## 🛠️ Tecnologías Utilizadas
 
-- **Frontend**: React.js + Vite (PWA)
-- **Backend**: Node.js + Express
-- **Base de Datos**: MySQL
+### Frontend
+- **React**: Biblioteca principal para la interfaz de usuario.
+- **Vite**: Build tool rápido y moderno.
+- **Tailwind CSS**: Estilizado ágil y responsivo.
+- **React Router DOM**: Navegación entre vistas (Padres/Hijos).
+- **Axios**: Cliente HTTP para comunicación con la API.
+- **PWA**: Configuración para instalación en móviles y funcionamiento offline básico.
 
-## Instalación
+### Backend
+- **Node.js & Express**: Servidor API RESTful.
+- **PostgreSQL (Neon)**: Base de datos relacional en la nube (Serverless).
+- **JWT (jsonwebtoken)**: Autenticación segura por roles.
+- **Bcryptjs**: Encriptación de contraseñas.
+- **CORS**: Gestión de seguridad para peticiones cruzadas.
 
-### 1. Clonar el repositorio
-```bash
-cd tdah-app
-```
+### Infraestructura & Despliegue
+- **Frontend**: Vercel (CDN global, HTTPS automático).
+- **Backend**: Render (Hosting de servicios Node.js).
+- **Base de Datos**: Neon (PostgreSQL Serverless gratuito).
+- **Control de Versiones**: Git & GitHub.
 
-### 2. Configurar la Base de Datos
+## 📂 Estructura del Proyecto
 
-```bash
-# Instalar MySQL si no lo tienes
-# Luego ejecutar el script SQL
-mysql -u root -p < backend/database.sql
-```
-
-### 3. Configurar el Backend
-
-```bash
-cd backend
-
-# Editar .env con tus credenciales de MySQL
-nano .env
-
-# Instalar dependencias
-npm install
-
-# Iniciar el servidor
-npm start
-```
-
-### 4. Configurar el Frontend
-
-```bash
-cd frontend
-
-# Instalar dependencias
-npm install
-
-# Iniciar el servidor de desarrollo
-npm run dev
-```
-
-## Estructura del Proyecto
-
-```
-tdah-app/
+```text
+task-app/
 ├── backend/
-│   ├── server.js          # Servidor Express
-│   ├── database.sql       # Script de base de datos
-│   ├── .env              # Variables de entorno
+│   ├── server.js          # Lógica del servidor y rutas API
+│   ├── .env               # Variables de entorno (DATABASE_URL, JWT_SECRET)
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/        # Componentes de página
-│   │   ├── services/     # Servicios API
-│   │   ├── App.jsx       # Componente principal
-│   │   └── main.jsx      # Punto de entrada
-│   ├── public/
-│   │   └── manifest.json # Manifiesto PWA
+│   │   ├── components/    # Componentes reutilizables
+│   │   ├── pages/         # Vistas principales (Login, Dashboards)
+│   │   ├── services/      # Conexión con API (api.js)
+│   │   └── App.jsx        # Enrutador principal
+│   ├── public/            # Assets estáticos e iconos PWA
 │   └── package.json
-└── README.md
-```
-
-## Uso
-
-### Registro de Usuarios
-
-1. **Padre**: Registrarse como "Padre/Madre"
-2. **Hijo**: Registrarse como "Hijo/a" e ingresar el ID del padre
-
-### Flujo de Trabajo
-
-1. El padre crea tareas con duración y puntaje
-2. El padre define premios según puntajes acumulados
-3. El hijo inicia sesión y ve sus tareas
-4. El hijo inicia una tarea → comienza el temporizador
-5. Al completar el tiempo → recibe puntos y frase motivadora
-6. El padre puede ver el progreso y puntajes
-
-## Endpoints API
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | /api/auth/register | Registrar usuario |
-| POST | /api/auth/login | Iniciar sesión |
-| GET | /api/tasks | Obtener tareas |
-| POST | /api/tasks | Crear tarea |
-| POST | /api/tasks/:id/start | Iniciar tarea |
-| POST | /api/tasks/:id/complete | Completar tarea |
-| GET | /api/scores | Obtener puntajes |
-| GET | /api/rewards | Obtener premios |
-| GET | /api/motivational-phrases | Frases motivadoras |
-| GET | /api/neurodivergence-info | Info neurodivergencia |
-
-## Notas Importantes
-
-- Asegúrate de tener MySQL corriendo antes de iniciar el backend
-- El frontend se ejecuta en `http://localhost:5173`
-- El backend se ejecuta en `http://localhost:3000`
-- La app está diseñada para ser instalable como PWA
-
-## Licencia
-
-MIT
+├── README.md
+└── .gitignore
