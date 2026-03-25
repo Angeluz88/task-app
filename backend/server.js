@@ -358,12 +358,12 @@ app.get('/api/scores/:childId', async (req, res) => {
       'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND DATE(completed_at) = CURRENT_DATE',
       [childId]
     );
-    const weekly = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= NOW() - INTERVAL ''7 days''',
+    const weekly = pool.query(
+      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= NOW() - INTERVAL ', '7 days', '',
       [childId]
     );
-    const monthly = await pool.query(
-      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= NOW() - INTERVAL ''30 days''',
+    const monthly = pool.query(
+      'SELECT SUM(points_earned) as total FROM task_progress WHERE child_id = $1 AND completed_at >= NOW() - INTERVAL ', '30 days', '',
       [childId]
     );
     const total = await pool.query(
