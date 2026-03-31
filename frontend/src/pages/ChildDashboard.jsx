@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {headerbg, taskbg } from '../assets'
 import { 
   getChildTasks, 
   completeTask, 
@@ -155,7 +156,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-500 p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10">
+      <header className="flex justify-between items-center mb-6 bg-cover h-40 p-4 rounded-xl shadow-md sticky top-0 z-10" style={{ backgroundImage: `url(${headerbg})` }}>
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
