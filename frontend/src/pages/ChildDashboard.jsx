@@ -8,6 +8,7 @@ import {
   getMotivationalPhrase, 
   getNeuroInfo 
 } from '../services/api';
+import {patron5} from '../assets/patron5.webp'
 
 const ChildDashboard = ({ onLogout }) => {
   const navigate = useNavigate();
@@ -155,7 +156,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-500 p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-[url('https://www.infobae.com/resizer/v2/https%3A%2F%2Fs3.amazonaws.com%2Farc-wordpress-client-uploads%2Finfobae-wp%2Fwp-content%2Fuploads%2F2018%2F09%2F22121845%2Fheroinas.jpg?auth=a728f359def30d5613a1d62f65df2b0717ecddbf29d8e00a45a3c16b1946093e&smart=true&width=992&height=558&quality=85')] bg-cover h-64 p-4 rounded-xl shadow-md sticky top-0 z-10">
+      <header className="flex justify-between items-center mb-6 bg-cover h-40 p-4 rounded-xl shadow-md sticky top-0 z-10"style={{ backgroundImage: `url(${patron5})` }}>
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
