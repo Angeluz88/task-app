@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {headerbg, taskbg } from '../assets'
 import { 
   getChildTasks, 
   completeTask, 
