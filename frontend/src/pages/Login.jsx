@@ -62,7 +62,7 @@ export default function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${isParent ? 'bg-blue-80' : 'bg-yellow-80'}`}>
+    <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${isParent ? 'bg-linear-to-r from-cyan-500 to-blue-500' : 'bg-linear-to-r from-yellow-500 to-orange-500'}`}>
       <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all">
         
         {/* Encabezado con Switch */}
