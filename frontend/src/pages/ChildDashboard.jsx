@@ -154,8 +154,8 @@ const ChildDashboard = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-purple-50 p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10">
+    <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-500 p-4 pb-20">
+      <header className="flex justify-between items-center mb-6 bg-[url('./src/assets/patron 5.webp')] p-4 rounded-xl shadow-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
