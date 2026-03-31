@@ -62,8 +62,8 @@ export default function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${isParent ? 'bg-blue-50' : 'bg-yellow-50'}`}>
-      <div className="bg-[url('frontend\src\assets\backgrond principal.jpg')] p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all">
+    <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${isParent ? 'bg-blue-80' : 'bg-yellow-80'}`}>
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all">
         
         {/* Encabezado con Switch */}
         <div className="text-center mb-6">
