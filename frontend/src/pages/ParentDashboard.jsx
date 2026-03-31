@@ -211,12 +211,12 @@ const ParentDashboard = ({ onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-linear-to-r from-cyan-500 to-blue-500 p-4 md:p-8">
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-cyan-400 p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Panel de Control 👨‍👩‍👧‍👦</h1>
-          <p className="text-gray-500">Bienvenido/a, {user?.name}</p>
+          <h1 className="text-2xl font-bold text-gray-800">Panel de Control 👨‍👩‍👧‍👦</h1>
+          <p className="text-xl text-gray-500">Bienvenido/a, {user?.name}</p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
           <button 
