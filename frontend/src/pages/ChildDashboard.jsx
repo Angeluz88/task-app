@@ -155,7 +155,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-500 p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-boxChild h-64 p-4 rounded-xl shadow-md sticky top-0 z-10">
+      <header className="flex justify-between items-center mb-6 bg-[url('https://www.google.com/imgres?q=ni%C3%B1os%20heroes%20y%20heroinas&imgurl=https%3A%2F%2Fs3.amazonaws.com%2Farc-wordpress-client-uploads%2Finfobae-wp%2Fwp-content%2Fuploads%2F2018%2F08%2F21161842%2Fsociedad-ni%25C3%25B1os-4.jpg&imgrefurl=https%3A%2F%2Fwww.infobae.com%2Ftendencias%2F2018%2F09%2F22%2Funa-tarde-de-superheroes-y-heroinas-la-trastienda-de-un-espacio-que-invita-a-jugar-en-familia%2F&docid=Rp0YeuDEqVkWeM&tbnid=4Oe_bRRHvs_0AM&vet=12ahUKEwjOhuWhnsqTAxWrLrkGHYE4LIgQnPAOegQIeRAB..i&w=1920&h=1080&hcb=2&ved=2ahUKEwjOhuWhnsqTAxWrLrkGHYE4LIgQnPAOegQIeRAB')] p-4 rounded-xl shadow-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
