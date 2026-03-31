@@ -154,8 +154,8 @@ const ChildDashboard = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-500 p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-[url('https://www.infobae.com/resizer/v2/https%3A%2F%2Fs3.amazonaws.com%2Farc-wordpress-client-uploads%2Finfobae-wp%2Fwp-content%2Fuploads%2F2018%2F08%2F21161842%2Fsociedad-ni%25C3%25B1os-4.jpg?auth=059943e08775752102c856ada27e803685cb6a618c9cf2ce1e1413425bbddd42&smart=true&width=992&height=558&quality=85')] bg-cover h-35 p-4 rounded-xl shadow-md sticky top-0 z-10">
+    <div className="min-h-screen bg-[url('https://www.infobae.com/resizer/v2/https%3A%2F%2Fs3.amazonaws.com%2Farc-wordpress-client-uploads%2Finfobae-wp%2Fwp-content%2Fuploads%2F2018%2F08%2F21161842%2Fsociedad-ni%25C3%25B1os-4.jpg?auth=059943e08775752102c856ada27e803685cb6a618c9cf2ce1e1413425bbddd42&smart=true&width=992&height=558&quality=85')] bg-cover h-screen p-4 pb-20">
+      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
