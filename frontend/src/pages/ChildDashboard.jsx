@@ -127,19 +127,16 @@ const ChildDashboard = ({ onLogout }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Determinar la ruta del avatar
-  // Si user.avatar_icon existe (ej: 'lobo'), usa '/icons/lobo.png'
-  // Si no, usa un icono por defecto o la inicial como fallback
-  const avatarSrc = user?.avatar_icon 
-    ? `/icons/${user.avatar_icon}.png` 
-    : null;
+  // CORRECCIÓN: Usar avatar_icon en lugar de avatar_color
+  const avatarIcon = user?.avatar_icon || 'lobo.png'; 
+  const avatarSrc = `/icons/${avatarIcon}`;
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-yellow-500 to-orange-400">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-xl text-white font-bold">Cargando tu mundo...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-blue-600 font-bold">Cargando tu mundo...</p>
         </div>
       </div>
     );
@@ -147,28 +144,22 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-400 p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-95">
+      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-90">
         <div className="flex items-center gap-3">
-          {/* Avatar con Imagen PNG */}
-          <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-white shadow-lg bg-gray-100 shrink-0">
-            {avatarSrc ? (
-              <img 
-                src={avatarSrc} 
-                alt={user?.name} 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Fallback si la imagen falla: mostrar inicial
-                  e.target.style.display = 'none';
-                  e.target.parentNode.innerHTML = `<div class="w-full h-full flex items-center justify-center text-xl font-bold text-gray-600">${user?.name?.charAt(0).toUpperCase()}</div>`;
-                }}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xl font-bold text-gray-600">
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
-            )}
+          {/* CORRECCIÓN: Usar etiqueta img en lugar de div con background */}
+          <div className="w-60px h-60px rounded-full overflow-hidden border-2 border-white shadow-lg bg-white flex items-center justify-center">
+            <img 
+              src={avatarSrc} 
+              alt="Avatar" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback si la imagen falla: mostrar inicial
+                e.target.style.display = 'none';
+                e.target.parentElement.innerText = user?.name?.charAt(0).toUpperCase();
+                e.target.parentElement.classList.add('text-2xl', 'font-bold', 'text-gray-600');
+              }}
+            />
           </div>
-          
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">¡Hola, {user?.name}! 🚀</h1>
             <p className="text-xs md:text-sm text-purple-600 font-medium">{phrase.phrase}</p>
@@ -182,19 +173,19 @@ const ChildDashboard = ({ onLogout }) => {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-yellow-100 p-3 rounded-xl text-center shadow-sm border border-yellow-200 opacity-95">
+        <div className="bg-yellow-200 p-3 rounded-xl text-center shadow-sm border border-yellow-300 opacity-80">
           <p className="text-yellow-800 text-xs font-bold uppercase">Hoy</p>
           <p className="text-2xl font-extrabold text-yellow-600">{scores.daily}</p>
         </div>
-        <div className="bg-green-100 p-3 rounded-xl text-center shadow-sm border border-green-200 opacity-95">
+        <div className="bg-green-200 p-3 rounded-xl text-center shadow-sm border border-green-300 opacity-80">
           <p className="text-green-800 text-xs font-bold uppercase">Semana</p>
           <p className="text-2xl font-extrabold text-green-600">{scores.weekly}</p>
         </div>
-        <div className="bg-blue-100 p-3 rounded-xl text-center shadow-sm border border-blue-200 opacity-95">
+        <div className="bg-blue-200 p-3 rounded-xl text-center shadow-sm border border-blue-300 opacity-80">
           <p className="text-blue-800 text-xs font-bold uppercase">Mes</p>
           <p className="text-2xl font-extrabold text-blue-600">{scores.monthly}</p>
         </div>
-        <div className="bg-purple-100 p-3 rounded-xl text-center shadow-sm border border-purple-200 opacity-95">
+        <div className="bg-purple-200 p-3 rounded-xl text-center shadow-sm border border-purple-300 opacity-80">
           <p className="text-purple-800 text-xs font-bold uppercase">Total</p>
           <p className="text-2xl font-extrabold text-purple-600">{scores.total}</p>
         </div>
@@ -202,7 +193,7 @@ const ChildDashboard = ({ onLogout }) => {
 
       {activeTask && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl opacity-95 transform transition-all scale-100">
+          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl opacity-90">
             <h2 className="text-2xl font-bold mb-2 text-gray-800">{activeTask.title}</h2>
             <p className="text-gray-500 mb-6">Concéntrate. ¡Tú puedes!</p>
             
@@ -231,7 +222,7 @@ const ChildDashboard = ({ onLogout }) => {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-95">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-90">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
             <span className="text-2xl">📋</span> Mis Tareas
           </h2>
@@ -265,22 +256,22 @@ const ChildDashboard = ({ onLogout }) => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 opacity-95">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 opacity-90">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">🎁</span> Mis Premios
             </h2>
             {prizes.length === 0 ? (
               <p className="text-gray-800 text-sm text-center py-4">Papá/mamá aún no ha añadido premios.</p>
             ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {prizes.map(prize => (
-                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-60 grayscale'}`}>
+                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-80 grayscale'}`}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-700'}`}>{prize.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1">{prize.description}</p>
+                        <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-800'}`}>{prize.title}</h4>
+                        <p className="text-xs text-gray-700 mt-1">{prize.description}</p>
                       </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${prize.is_unlocked ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{prize.required_points} pts</span>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${prize.is_unlocked ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700'}`}>{prize.required_points} pts</span>
                     </div>
                     {prize.is_unlocked && <p className="text-xs text-green-600 font-bold mt-2 text-right">¡Desbloqueado! 🎉</p>}
                   </div>
@@ -290,7 +281,7 @@ const ChildDashboard = ({ onLogout }) => {
           </div>
 
           {neuroInfo.length > 0 && (
-            <div className="bg-indigo-100 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm opacity-95">
+            <div className="bg-indigo-200 p-5 rounded-xl border-l-4 border-indigo-300 shadow-sm opacity-90">
               <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2"><span>💡</span> ¿Sabías qué?</h3>
               <p className="text-sm text-indigo-900 leading-relaxed"><strong className="block mb-1">{neuroInfo[0].title}:</strong>{neuroInfo[0].content}</p>
             </div>
