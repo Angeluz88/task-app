@@ -133,7 +133,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-yellow-300 to-orange-300">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-[#a1c4fd] to-[#c2e9fb]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-xl text-blue-600 font-bold">Cargando tu mundo...</p>
