@@ -155,7 +155,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-[url('https://task-app-eight-inky.vercel.app/bgChildPattern.png')] bg-cover h-screen p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-80">
+      <header className="flex justify-between items-center mb-6 bg-orange-300 p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-80">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
@@ -193,7 +193,7 @@ const ChildDashboard = ({ onLogout }) => {
 
       {activeTask && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl">
+          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl opacity-80">
             <h2 className="text-2xl font-bold mb-2 text-gray-800">{activeTask.title}</h2>
             <p className="text-gray-500 mb-6">Concéntrate. ¡Tú puedes!</p>
             
@@ -212,7 +212,7 @@ const ChildDashboard = ({ onLogout }) => {
               </div>
 
               {(timeLeft === 0 || !isTimerRunning) && activeTask && (
-                <button onClick={handleCompleteTask} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition shadow-lg transform hover:scale-105 animate-bounce">
+                <button onClick={handleCompleteTask} className="w-full bg-linear-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition shadow-lg transform hover:scale-105 animate-bounce">
                   ¡TERMINÉ LA TAREA! ✅
                 </button>
               )}
@@ -222,7 +222,7 @@ const ChildDashboard = ({ onLogout }) => {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
             <span className="text-2xl">📋</span> Mis Tareas
           </h2>
@@ -256,7 +256,7 @@ const ChildDashboard = ({ onLogout }) => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">🎁</span> Mis Premios
             </h2>
@@ -265,7 +265,7 @@ const ChildDashboard = ({ onLogout }) => {
             ) : (
               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {prizes.map(prize => (
-                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-gradient-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-60 grayscale'}`}>
+                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-60 grayscale'}`}>
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-700'}`}>{prize.title}</h4>
@@ -281,7 +281,7 @@ const ChildDashboard = ({ onLogout }) => {
           </div>
 
           {neuroInfo.length > 0 && (
-            <div className="bg-indigo-100 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm">
+            <div className="bg-indigo-200 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm opacity-80">
               <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2"><span>💡</span> ¿Sabías qué?</h3>
               <p className="text-sm text-indigo-900 leading-relaxed"><strong className="block mb-1">{neuroInfo[0].title}:</strong>{neuroInfo[0].content}</p>
             </div>
