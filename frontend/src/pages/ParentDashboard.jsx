@@ -237,7 +237,7 @@ const ParentDashboard = ({ onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-cyan-500 to-blue-500 p-4 md:p-8">
+    <div className="min-h-screen bg-liner-to-r from-cyan-500 to-blue-500 p-4 md:p-8">
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
@@ -346,14 +346,14 @@ const ParentDashboard = ({ onLogout }) => {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 shadow-sm flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 shadow-sm shrink-0">
                         {avatarSrc ? (
                           <img src={avatarSrc} alt={child.name} className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-lg font-bold text-blue-600">{child.name.charAt(0)}</span>
                         )}
                       </div>
-                      <span className="font-medium truncate max-w-[100px]">{child.name}</span>
+                      <span className="font-medium truncate max-w-100px">{child.name}</span>
                     </div>
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }}
