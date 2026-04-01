@@ -38,7 +38,7 @@ export default function ChildLogin({ onLoginSuccess }) {
         
         {/* Icono divertido */}
         <div className="text-6xl mb-4 animate-bounce">
-          <img src="frontend\public\icons\sol.png" alt="sol" />
+          <img src="/icons/sol.png" alt="sol" />
         </div>
         
         <h1 className="text-3xl font-extrabold text-orange-600 mb-2">
