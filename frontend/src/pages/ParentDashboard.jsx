@@ -243,7 +243,7 @@ const ParentDashboard = ({ onLogout }) => {
   return (
     <div className="min-h-screen bg-linear-to-r from-cyan-500 to-blue-500 p-4 md:p-8">
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100 opacity-85">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100 opacity-90">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Hagamos que funcione!</h1>
           <p className="text-xl text-gray-500">Bienvenido/a, {user?.name}</p>
@@ -416,7 +416,7 @@ const ParentDashboard = ({ onLogout }) => {
                     <p className="text-xs text-gray-500 uppercase font-bold">Esta Semana</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.weekly}</p>
                   </div>
-                  <div className="bg-blue-200 p-4 rounded-xl shadow-sm border-l-4 border-blue-400">
+                  <div className="bg-red-200 p-4 rounded-xl shadow-sm border-l-4 border-red-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Este Mes</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.monthly}</p>
                   </div>
