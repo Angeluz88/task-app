@@ -245,7 +245,7 @@ const ParentDashboard = ({ onLogout }) => {
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100 opacity-85">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Panel de Control 👨‍👩‍👧‍👦</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Hagamos que funcione!</h1>
           <p className="text-xl text-gray-500">Bienvenido/a, {user?.name}</p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
@@ -268,7 +268,7 @@ const ParentDashboard = ({ onLogout }) => {
         
         {/* Columna Izquierda: Lista de Hijos */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 opacity-85">
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 opacity-90">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-lg text-gray-800">Mis Hijos</h2>
               <button 
@@ -379,7 +379,7 @@ const ParentDashboard = ({ onLogout }) => {
           </div>
 
           {/* Info Neurodivergencia */}
-          <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100 opacity-85">
+          <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100 opacity-90">
             <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
               <span>💡</span> Consejos TDAH
             </h3>
@@ -408,19 +408,19 @@ const ParentDashboard = ({ onLogout }) => {
               {/* Resumen de Puntos */}
               {childScores && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-yellow-100 p-4 rounded-xl shadow-sm border-l-4 border-yellow-400">
+                  <div className="bg-yellow-200 p-4 rounded-xl shadow-sm border-l-4 border-yellow-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Puntos Hoy</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.daily}</p>
                   </div>
-                  <div className="bg-green-100 p-4 rounded-xl shadow-sm border-l-4 border-green-400">
+                  <div className="bg-green-200 p-4 rounded-xl shadow-sm border-l-4 border-green-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Esta Semana</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.weekly}</p>
                   </div>
-                  <div className="bg-blue-100 p-4 rounded-xl shadow-sm border-l-4 border-blue-400">
+                  <div className="bg-blue-200 p-4 rounded-xl shadow-sm border-l-4 border-blue-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Este Mes</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.monthly}</p>
                   </div>
-                  <div className="bg-purple-100 p-4 rounded-xl shadow-sm border-l-4 border-purple-400">
+                  <div className="bg-purple-200 p-4 rounded-xl shadow-sm border-l-4 border-purple-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Total Histórico</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.total}</p>
                   </div>
@@ -428,7 +428,7 @@ const ParentDashboard = ({ onLogout }) => {
               )}
 
               {/* Sección Tareas */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-85">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">📋 Tareas Asignadas</h2>
                   <button 
@@ -480,7 +480,7 @@ const ParentDashboard = ({ onLogout }) => {
               </div>
 
               {/* Sección Premios */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-85">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">🎁 Premios Disponibles</h2>
                   <button 
