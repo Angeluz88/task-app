@@ -265,7 +265,7 @@ const ChildDashboard = ({ onLogout }) => {
             ) : (
               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {prizes.map(prize => (
-                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-60 grayscale'}`}>
+                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-80 grayscale'}`}>
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-700'}`}>{prize.title}</h4>
