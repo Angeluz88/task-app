@@ -144,8 +144,8 @@ const ChildDashboard = ({ onLogout }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-yellow-500 to-orange-500">
-        <div className="text-center bg-white rounded-3xl opacity-90">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-yellow-500 to-orange-400">
+        <div className="text-center bg-white rounded-3xl opacity-75">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-xl text-blue-600 font-bold">Cargando tu mundo...</p>
         </div>
@@ -154,7 +154,7 @@ const ChildDashboard = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-500 p-4 pb-20">
+    <div className="min-h-screen bg-linear-to-r from-yellow-500 to-orange-400 p-4 pb-20">
       <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-90">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
