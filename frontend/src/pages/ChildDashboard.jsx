@@ -145,7 +145,7 @@ const ChildDashboard = ({ onLogout }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[url('https://task-app-eight-inky.vercel.app/bgChildPattern.png')] bg-cover h-screen">
-        <div className="text-center">
+        <div className="text-center bg-white opacity-50">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-xl text-blue-600 font-bold">Cargando tu mundo...</p>
         </div>
@@ -155,7 +155,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-[url('https://task-app-eight-inky.vercel.app/bgChildPattern.png')] bg-cover h-screen p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10">
+      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-50">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
