@@ -256,12 +256,12 @@ const ChildDashboard = ({ onLogout }) => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-red-300 p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
+          <div className="bg-red-200 p-6 rounded-xl shadow-md border border-red-300 opacity-80">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">🎁</span> Mis Premios
             </h2>
             {prizes.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-4">Papá/mamá aún no ha añadido premios.</p>
+              <p className="text-gray-800 text-sm text-center py-4">Papá/mamá aún no ha añadido premios.</p>
             ) : (
               <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {prizes.map(prize => (
