@@ -75,7 +75,7 @@ async function initDB() {
         role VARCHAR(50) DEFAULT 'parent',
         pin_code VARCHAR(10),
         parent_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        avatar_color VARCHAR(20) DEFAULT '#3B82F6',
+        avatar_icon VARCHAR(255) DEFAULT 'lobo.png', -- CAMBIO: De avatar_color a avatar_icon
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -214,11 +214,12 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ==========================================
-// RUTAS DE GESTIÓN DE HIJOS
+// RUTAS DE GESTIÓN DE HIJOS (ACTUALIZADO AVATARES)
 // ==========================================
 
 app.post('/api/children', async (req, res) => {
-  const { name, pin_code, avatar_color, parent_email } = req.body;
+  const { name, pin_code, avatar_icon, parent_email } = req.body; // CAMBIO: avatar_icon en lugar de avatar_color
+  
   if (!name || !pin_code || !parent_email) return res.status(400).json({ message: 'Faltan datos' });
 
   try {
@@ -229,9 +230,10 @@ app.post('/api/children', async (req, res) => {
     const existing = await pool.query('SELECT id FROM users WHERE parent_id = $1 AND pin_code = $2', [parentId, pin_code]);
     if (existing.rows.length > 0) return res.status(400).json({ message: 'PIN ya en uso' });
 
+    // CAMBIO: Guardar avatar_icon (nombre del archivo), default 'lobo.png'
     const result = await pool.query(
-      `INSERT INTO users (name, role, pin_code, avatar_color, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [name, 'child', pin_code, avatar_color || '#3B82F6', parentId]
+      `INSERT INTO users (name, role, pin_code, avatar_icon, parent_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [name, 'child', pin_code, avatar_icon || 'lobo.png', parentId]
     );
     
     res.status(201).json({ message: 'Hijo creado', childId: result.rows[0].id });
@@ -250,8 +252,9 @@ app.post('/api/login-child', async (req, res) => {
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
     const parentId = parentRes.rows[0].id;
 
+    // CAMBIO: Seleccionar avatar_icon en lugar de avatar_color
     const result = await pool.query(
-      `SELECT id, name, avatar_color, role FROM users 
+      `SELECT id, name, avatar_icon, role FROM users 
        WHERE parent_id = $1 AND role = $2 AND (pin_code = $3 OR name = $4)`,
       [parentId, 'child', identifier, identifier]
     );
@@ -275,8 +278,9 @@ app.get('/api/my-children', async (req, res) => {
     const parentRes = await pool.query('SELECT id FROM users WHERE email = $1', [parent_email]);
     if (parentRes.rows.length === 0) return res.status(404).json({ message: 'Padre no encontrado' });
 
+    // CAMBIO: Seleccionar avatar_icon en lugar de avatar_color
     const result = await pool.query(
-      'SELECT id, name, avatar_color, pin_code FROM users WHERE parent_id = $1 AND role = $2 ORDER BY name ASC',
+      'SELECT id, name, avatar_icon, pin_code FROM users WHERE parent_id = $1 AND role = $2 ORDER BY name ASC',
       [parentRes.rows[0].id, 'child']
     );
     res.json(result.rows);
@@ -303,7 +307,7 @@ app.delete('/api/children/:id', async (req, res) => {
 });
 
 // ==========================================
-// RUTAS DE TAREAS (CON ELIMINAR)
+// RUTAS DE TAREAS
 // ==========================================
 
 app.post('/api/tasks', authenticateToken, async (req, res) => {
@@ -330,14 +334,12 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
   }
 });
 
-// NUEVA RUTA: Eliminar tarea
 app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'parent') return res.status(403).json({ message: 'Solo padres' });
 
   const { id } = req.params;
 
   try {
-    // Verificar que la tarea fue creada por este padre
     const taskRes = await pool.query('SELECT id FROM tasks WHERE id = $1 AND created_by = $2', [id, req.user.id]);
     
     if (taskRes.rows.length === 0) {
@@ -357,7 +359,6 @@ app.get('/api/tasks/child/:childId', async (req, res) => {
   try {
     const { start, end } = getUTCTodayRange();
     
-    // Usamos BETWEEN para verificar si hay registros hoy en UTC
     const result = await pool.query(`
       SELECT t.id, t.title, t.description, t.duration_minutes, t.points, t.created_at,
              (SELECT COUNT(*) FROM task_progress tp 
@@ -401,7 +402,6 @@ app.post('/api/tasks/complete', async (req, res) => {
   try {
     const { start, end } = getUTCTodayRange();
     
-    // Verificar si ya completó hoy usando el rango exacto en UTC
     const existing = await pool.query(
       'SELECT id FROM task_progress WHERE task_id = $1 AND child_id = $2 AND completed_at >= $3 AND completed_at <= $4',
       [task_id, child_id, start, end]

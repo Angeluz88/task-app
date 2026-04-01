@@ -23,7 +23,7 @@ const AVAILABLE_AVATARS = [
   { id: 'gato', src: '/icons/gato.png', name: 'Gato' },
   { id: 'oso', src: '/icons/oso.png', name: 'Oso' },
   { id: 'conejo', src: '/icons/conejo.png', name: 'Conejo' },
-  { id: 'pinguino', src: '/icons/pinguino.png', name: 'Pingüino' },
+  { id: 'pinguino', src: '/icons/Pingüino.png', name: 'Pingüino' },
   { id: 'perro', src: '/icons/perro.png', name: 'Perro' },
   { id: 'vaca', src: '/icons/vaca.png', name: 'Vaca' },
   { id: 'jirafa', src: '/icons/jirafa.png', name: 'Jirafa' },

@@ -37,7 +37,9 @@ export default function ChildLogin({ onLoginSuccess }) {
       <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-4 border-orange-400">
         
         {/* Icono divertido */}
-        <div className="text-6xl mb-4 animate-bounce">🚀</div>
+        <div className="text-6xl mb-4 animate-bounce">
+          <img src="frontend\public\icons\sol.png" alt="sol" />
+        </div>
         
         <h1 className="text-3xl font-extrabold text-orange-600 mb-2">
           ¡Hola Campeón!
