@@ -145,7 +145,7 @@ const ChildDashboard = ({ onLogout }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[url('https://task-app-eight-inky.vercel.app/bgChildPattern.png')] bg-cover h-screen">
-        <div className="text-center blur-sm">
+        <div className="text-center bg-white opacity-80">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-xl text-blue-600 font-bold">Cargando tu mundo...</p>
         </div>
@@ -155,7 +155,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-[url('https://task-app-eight-inky.vercel.app/bgChildPattern.png')] bg-cover h-screen p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-75">
+      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-80">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
@@ -165,7 +165,7 @@ const ChildDashboard = ({ onLogout }) => {
             <p className="text-xs md:text-sm text-purple-600 font-medium">{phrase.phrase}</p>
           </div>
         </div>
-        <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition" title="Cerrar sesión">
+        <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition opacity-80" title="Cerrar sesión">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
@@ -173,19 +173,19 @@ const ChildDashboard = ({ onLogout }) => {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-yellow-100 p-3 rounded-xl text-center shadow-sm border border-yellow-200">
+        <div className="bg-yellow-200 p-3 rounded-xl text-center shadow-sm border border-yellow-300 opacity-80">
           <p className="text-yellow-800 text-xs font-bold uppercase">Hoy</p>
           <p className="text-2xl font-extrabold text-yellow-600">{scores.daily}</p>
         </div>
-        <div className="bg-green-100 p-3 rounded-xl text-center shadow-sm border border-green-200">
+        <div className="bg-green-200 p-3 rounded-xl text-center shadow-sm border border-green-300 opacity-80">
           <p className="text-green-800 text-xs font-bold uppercase">Semana</p>
           <p className="text-2xl font-extrabold text-green-600">{scores.weekly}</p>
         </div>
-        <div className="bg-blue-100 p-3 rounded-xl text-center shadow-sm border border-blue-200">
+        <div className="bg-blue-200 p-3 rounded-xl text-center shadow-sm border border-blue-300 opacity-80">
           <p className="text-blue-800 text-xs font-bold uppercase">Mes</p>
           <p className="text-2xl font-extrabold text-blue-600">{scores.monthly}</p>
         </div>
-        <div className="bg-purple-100 p-3 rounded-xl text-center shadow-sm border border-purple-200">
+        <div className="bg-purple-200 p-3 rounded-xl text-center shadow-sm border border-purple-300 opacity-80">
           <p className="text-purple-800 text-xs font-bold uppercase">Total</p>
           <p className="text-2xl font-extrabold text-purple-600">{scores.total}</p>
         </div>
