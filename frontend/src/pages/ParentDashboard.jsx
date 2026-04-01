@@ -243,7 +243,7 @@ const ParentDashboard = ({ onLogout }) => {
   return (
     <div className="min-h-screen bg-linear-to-r from-[#a1c4fd] to-[#c2e9fb] p-4 md:p-8">
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100 opacity-90">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white backdrop-blur-sm p-6 rounded-xl shadow-sm border border-gray-100 opacity-90">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Hagamos que funcione!</h1>
           <p className="text-xl text-gray-500">Bienvenido/a, {user?.name}</p>
@@ -268,7 +268,7 @@ const ParentDashboard = ({ onLogout }) => {
         
         {/* Columna Izquierda: Lista de Hijos */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 opacity-90">
+          <div className="bg-white backdrop-blur-sm p-5 rounded-xl shadow-sm border border-gray-100 opacity-90">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-lg text-gray-800">Mis Hijos</h2>
               <button 
@@ -379,7 +379,7 @@ const ParentDashboard = ({ onLogout }) => {
           </div>
 
           {/* Info Neurodivergencia */}
-          <div className="bg-indigo-50 p-5 rounded-xl border border-indigo-100 opacity-90">
+          <div className="bg-indigo-50 p-5 rounded-xl border backdrop-blur-sm border-indigo-100 opacity-90">
             <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
               <span>💡</span> Consejos TDAH
             </h3>
@@ -396,7 +396,7 @@ const ParentDashboard = ({ onLogout }) => {
         {/* Columna Derecha: Gestión */}
         <div className="lg:col-span-3">
           {!selectedChildId ? (
-            <div className="flex flex-col items-center justify-center h-64 bg-white rounded-xl border-2 border-dashed border-gray-300 text-gray-400 opacity-85">
+            <div className="flex flex-col items-center justify-center h-64 bg-white backdrop-blur-sm rounded-xl border-2 border-dashed border-gray-300 text-gray-400 opacity-85">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -408,19 +408,19 @@ const ParentDashboard = ({ onLogout }) => {
               {/* Resumen de Puntos */}
               {childScores && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-yellow-200 p-4 rounded-xl shadow-sm border-l-4 border-yellow-400">
+                  <div className="bg-yellow-200 backdrop-blur-sm p-4 rounded-xl shadow-sm border-l-4 border-yellow-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Puntos Hoy</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.daily}</p>
                   </div>
-                  <div className="bg-green-200 p-4 rounded-xl shadow-sm border-l-4 border-green-400">
+                  <div className="bg-green-200 backdrop-blur-sm p-4 rounded-xl shadow-sm border-l-4 border-green-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Esta Semana</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.weekly}</p>
                   </div>
-                  <div className="bg-red-200 p-4 rounded-xl shadow-sm border-l-4 border-red-400">
+                  <div className="bg-red-200 backdrop-blur-sm p-4 rounded-xl shadow-sm border-l-4 border-red-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Este Mes</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.monthly}</p>
                   </div>
-                  <div className="bg-purple-200 p-4 rounded-xl shadow-sm border-l-4 border-purple-400">
+                  <div className="bg-purple-200 backdrop-blur-sm p-4 rounded-xl shadow-sm border-l-4 border-purple-400">
                     <p className="text-xs text-gray-500 uppercase font-bold">Total Histórico</p>
                     <p className="text-2xl font-bold text-gray-800">{childScores.total}</p>
                   </div>
@@ -428,7 +428,7 @@ const ParentDashboard = ({ onLogout }) => {
               )}
 
               {/* Sección Tareas */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
+              <div className="bg-white backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">📋 Tareas Asignadas</h2>
                   <button 
@@ -480,7 +480,7 @@ const ParentDashboard = ({ onLogout }) => {
               </div>
 
               {/* Sección Premios */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
+              <div className="bg-white backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">🎁 Premios Disponibles</h2>
                   <button 

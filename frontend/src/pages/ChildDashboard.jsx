@@ -147,7 +147,7 @@ const ChildDashboard = ({ onLogout }) => {
       <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-90">
         <div className="flex items-center gap-3">
           {/* CORRECCIÓN: Usar etiqueta img en lugar de div con background */}
-          <div className="w-60px h-60px rounded-full overflow-hidden border-2 border-white shadow-lg bg-white flex items-center justify-center">
+          <div className="w-60px h-60px rounded-full overflow-hidden border-2 border-white shadow-lg bg-white backdrop-blur-sm flex items-center justify-center">
             <img 
               src={avatarSrc} 
               alt="Avatar" 
@@ -173,19 +173,19 @@ const ChildDashboard = ({ onLogout }) => {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-yellow-200 p-3 rounded-xl text-center shadow-sm border border-yellow-400 opacity-80">
+        <div className="bg-yellow-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-yellow-400 opacity-80">
           <p className="text-yellow-800 text-xs font-bold uppercase">Hoy</p>
           <p className="text-2xl font-extrabold text-yellow-600">{scores.daily}</p>
         </div>
-        <div className="bg-green-200 p-3 rounded-xl text-center shadow-sm border border-green-400 opacity-80">
+        <div className="bg-green-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-green-400 opacity-80">
           <p className="text-green-800 text-xs font-bold uppercase">Semana</p>
           <p className="text-2xl font-extrabold text-green-600">{scores.weekly}</p>
         </div>
-        <div className="bg-red-200 p-3 rounded-xl text-center shadow-sm border border-red-400 opacity-80">
+        <div className="bg-red-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-red-400 opacity-80">
           <p className="text-blue-800 text-xs font-bold uppercase">Mes</p>
           <p className="text-2xl font-extrabold text-blue-600">{scores.monthly}</p>
         </div>
-        <div className="bg-purple-200 p-3 rounded-xl text-center shadow-sm border border-purple-400 opacity-80">
+        <div className="bg-purple-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-purple-400 opacity-80">
           <p className="text-purple-800 text-xs font-bold uppercase">Total</p>
           <p className="text-2xl font-extrabold text-purple-600">{scores.total}</p>
         </div>
@@ -222,7 +222,7 @@ const ChildDashboard = ({ onLogout }) => {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-90">
+        <div className="bg-white backdrop-blur-sm p-6 rounded-xl shadow-md border border-gray-100 opacity-90">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
             <span className="text-2xl">📋</span> Mis Tareas
           </h2>
@@ -281,7 +281,7 @@ const ChildDashboard = ({ onLogout }) => {
           </div>
 
           {neuroInfo.length > 0 && (
-            <div className="bg-indigo-200 p-5 rounded-xl border-l-4 border-indigo-300 shadow-sm opacity-90">
+            <div className="bg-white backdrop-blur-sm p-5 rounded-xl border-l-4 border-indigo-300 shadow-sm opacity-90">
               <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2"><span>💡</span> ¿Sabías qué?</h3>
               <p className="text-sm text-indigo-900 leading-relaxed"><strong className="block mb-1">{neuroInfo[0].title}:</strong>{neuroInfo[0].content}</p>
             </div>
