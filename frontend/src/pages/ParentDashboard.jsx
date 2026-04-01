@@ -6,12 +6,28 @@ import {
   deleteChild, 
   createTask, 
   getParentTasks, 
-  deleteTask, // Asegúrate de exportar esto en api.js si no lo tienes
+  deleteTask,
   createPrize, 
   getChildPrizes,
   getScores,
   getNeuroInfo
 } from '../services/api';
+
+// Lista de Avatares Disponibles (Asegúrate que estos archivos existan en public/icons/)
+const AVAILABLE_AVATARS = [
+  { id: 'lobo', src: '/icons/lobo.png', name: 'Lobo' },
+  { id: 'unicornio', src: '/icons/unicornio.png', name: 'Unicornio' },
+  { id: 'elefante', src: '/icons/elefante.png', name: 'Elefante' },
+  { id: 'gorila', src: '/icons/gorila.png', name: 'Gorila' },
+  { id: 'panda', src: '/icons/panda.png', name: 'Panda' },
+  { id: 'gato', src: '/icons/gato.png', name: 'Gato' },
+  { id: 'oso', src: '/icons/oso.png', name: 'Oso' },
+  { id: 'conejo', src: '/icons/conejo.png', name: 'Conejo' },
+  { id: 'pinguino', src: '/icons/pinguino.png', name: 'Pingüino' },
+  { id: 'perro', src: '/icons/perro.png', name: 'Perro' },
+  { id: 'vaca', src: '/icons/vaca.png', name: 'Vaca' },
+  { id: 'jirafa', src: '/icons/jirafa.png', name: 'Jirafa' },
+];
 
 const ParentDashboard = ({ onLogout }) => {
   const navigate = useNavigate();
@@ -27,6 +43,7 @@ const ParentDashboard = ({ onLogout }) => {
   const [showAddChild, setShowAddChild] = useState(false);
   const [newChildName, setNewChildName] = useState('');
   const [newChildPin, setNewChildPin] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(AVAILABLE_AVATARS[0].id); // Guardamos el ID
 
   // Estados para Crear Tarea
   const [showAddTask, setShowAddTask] = useState(false);
@@ -93,9 +110,7 @@ const ParentDashboard = ({ onLogout }) => {
         getScores(childId)
       ]);
       
-      // Filtrar tareas solo para el hijo seleccionado
       setTasks(tasksData.filter(t => t.assigned_to == childId));
-      
       setPrizes(prizesData);
       setChildScores(scoresData);
     } catch (error) {
@@ -107,16 +122,19 @@ const ParentDashboard = ({ onLogout }) => {
   const handleAddChild = async (e) => {
     e.preventDefault();
     try {
+      // Enviamos el ID del avatar seleccionado (ej: 'lobo')
+      // El backend lo guardará en avatar_icon o similar
       await registerChild({ 
         name: newChildName, 
         pin_code: newChildPin, 
-        avatar_color: '#' + Math.floor(Math.random()*16777215).toString(16) 
+        avatar_icon: selectedAvatar 
       });
       
       alert('¡Hijo agregado correctamente!');
       setShowAddChild(false);
       setNewChildName('');
       setNewChildPin('');
+      setSelectedAvatar(AVAILABLE_AVATARS[0].id);
       loadChildren();
     } catch (error) {
       alert('Error: ' + (error.response?.data?.message || error.message));
@@ -163,15 +181,12 @@ const ParentDashboard = ({ onLogout }) => {
     }
   };
 
-  // NUEVO: Manejador para Eliminar Tarea
   const handleDeleteTask = async (taskId, taskTitle) => {
     if (window.confirm(`¿Estás seguro de eliminar la tarea "${taskTitle}"?`)) {
       try {
-        // Nota: Asegúrate de tener esta función exportada en api.js
-        // Si no la tienes, ver instrucciones abajo para agregarla.
         await deleteTask(taskId); 
         alert('Tarea eliminada');
-        loadChildData(selectedChildId); // Recargar lista
+        loadChildData(selectedChildId);
       } catch (error) {
         console.error(error);
         alert('Error al eliminar: ' + (error.response?.data?.message || error.message));
@@ -210,8 +225,19 @@ const ParentDashboard = ({ onLogout }) => {
     }
   };
 
+  // Función auxiliar para obtener la URL del avatar
+  const getAvatarUrl = (child) => {
+    // Si el backend devuelve avatar_icon (nombre del archivo)
+    if (child.avatar_icon) {
+      const avatar = AVAILABLE_AVATARS.find(a => a.id === child.avatar_icon);
+      return avatar ? avatar.src : '/icons/lobo.png'; // Fallback
+    }
+    // Fallback para datos antiguos si usabas avatar_color (opcional)
+    return null; 
+  };
+
   return (
-    <div className="min-h-screen bg-linear-to-r from-cyan-500 to-blue-500 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-r from-cyan-500 to-blue-500 p-4 md:p-8">
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div>
@@ -271,6 +297,34 @@ const ParentDashboard = ({ onLogout }) => {
                   className="w-full mb-2 p-2 text-sm border rounded"
                   required
                 />
+                
+                {/* Selector de Avatares */}
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">Elige un Avatar:</label>
+                  <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1 bg-white rounded border">
+                    {AVAILABLE_AVATARS.map((avatar) => (
+                      <button
+                        key={avatar.id}
+                        type="button"
+                        onClick={() => setSelectedAvatar(avatar.id)}
+                        className={`flex flex-col items-center justify-center p-1 rounded transition ${
+                          selectedAvatar === avatar.id 
+                            ? 'bg-blue-100 ring-2 ring-blue-500 scale-105' 
+                            : 'hover:bg-gray-100'
+                        }`}
+                        title={avatar.name}
+                      >
+                        <img 
+                          src={avatar.src} 
+                          alt={avatar.name} 
+                          className="w-8 h-8 object-contain"
+                        />
+                        <span className="text-[9px] mt-1 text-center leading-tight truncate w-full">{avatar.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-blue-600 text-white text-xs py-2 rounded hover:bg-blue-700">Guardar</button>
                   <button type="button" onClick={() => setShowAddChild(false)} className="flex-1 bg-gray-300 text-gray-700 text-xs py-2 rounded">Cancelar</button>
@@ -279,31 +333,43 @@ const ParentDashboard = ({ onLogout }) => {
             )}
 
             <div className="space-y-2">
-              {children.map(child => (
-                <div 
-                  key={child.id} 
-                  onClick={() => setSelectedChildId(child.id)}
-                  className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition ${selectedChildId === child.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 hover:bg-gray-100 text-gray-700'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                      style={{ backgroundColor: child.avatar_color }}
-                    >
-                      {child.name.charAt(0)}
-                    </div>
-                    <span className="font-medium">{child.name}</span>
-                  </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }}
-                    className={`p-1 rounded hover:bg-red-200 ${selectedChildId === child.id ? 'text-white hover:text-red-900' : 'text-gray-400 hover:text-red-600'}`}
+              {children.map(child => {
+                const avatarSrc = getAvatarUrl(child);
+                return (
+                  <div 
+                    key={child.id} 
+                    onClick={() => setSelectedChildId(child.id)}
+                    className={`flex justify-between items-center p-3 rounded-lg cursor-pointer transition ${
+                      selectedChildId === child.id 
+                        ? 'bg-blue-600 text-white shadow-md' 
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                    }`}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 shadow-sm flex-shrink-0">
+                        {avatarSrc ? (
+                          <img src={avatarSrc} alt={child.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-lg font-bold text-blue-600">{child.name.charAt(0)}</span>
+                        )}
+                      </div>
+                      <span className="font-medium truncate max-w-[100px]">{child.name}</span>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }}
+                      className={`p-1 rounded hover:bg-red-200 ${
+                        selectedChildId === child.id 
+                          ? 'text-white hover:text-red-900' 
+                          : 'text-gray-400 hover:text-red-600'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
               {children.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No hay hijos registrados.</p>}
             </div>
           </div>
@@ -394,7 +460,6 @@ const ParentDashboard = ({ onLogout }) => {
                           </div>
                         </div>
                         
-                        {/* BOTÓN DE ELIMINAR TAREA */}
                         <button 
                           onClick={() => handleDeleteTask(task.id, task.title)}
                           className="ml-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition opacity-0 group-hover:opacity-100 focus:opacity-100"
