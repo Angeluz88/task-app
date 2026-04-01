@@ -268,10 +268,10 @@ const ChildDashboard = ({ onLogout }) => {
                   <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-80 grayscale'}`}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-700'}`}>{prize.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1">{prize.description}</p>
+                        <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-800'}`}>{prize.title}</h4>
+                        <p className="text-xs text-gray-700 mt-1">{prize.description}</p>
                       </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${prize.is_unlocked ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-600'}`}>{prize.required_points} pts</span>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${prize.is_unlocked ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700'}`}>{prize.required_points} pts</span>
                     </div>
                     {prize.is_unlocked && <p className="text-xs text-green-600 font-bold mt-2 text-right">¡Desbloqueado! 🎉</p>}
                   </div>
