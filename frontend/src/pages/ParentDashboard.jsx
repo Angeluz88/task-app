@@ -420,19 +420,7 @@ const ParentDashboard = ({ onLogout }) => {
             </div>
           </div>
 
-          {/* Info Neurodivergencia (Estático) */}
-          <div className="bg-indigo-50 p-5 rounded-xl border backdrop-blur-sm border-indigo-100 opacity-95">
-            <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
-              <span>🧠</span> Datos TDAH
-            </h3>
-            <ul className="space-y-2">
-              {neuroInfo.map((info, idx) => (
-                <li key={idx} className="text-sm text-indigo-900 bg-white p-2 rounded shadow-sm">
-                  <strong>{info.title}:</strong> {info.content}
-                </li>
-              ))}
-            </ul>
-          </div>
+          
         </div>
 
         {/* Columna Derecha: Gestión */}
