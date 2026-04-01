@@ -541,7 +541,24 @@ app.get('/api/phrases', async (req, res) => {
     res.status(500).json({ message: 'Error al obtener frases', error: error.message });
   }
 });
-
+app.get('/api/parent-tips', async (req, res) => {
+  try {
+    // Obtenemos todos los consejos activos de la categoría 'parent_tip'
+    const result = await pool.query(
+      'SELECT title, content FROM neurodivergence_info WHERE category = $1 AND active = true', 
+      ['parent_tip']
+    );
+    
+    if (result.rows.length === 0) {
+      return res.json([{ title: 'Consejo', content: 'La paciencia y la constancia son tus mejores herramientas.' }]);
+    }
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error obteniendo consejos:', error);
+    res.status(500).json({ message: 'Error al obtener consejos', error: error.message });
+  }
+});
 app.get('/api/neuro-info', async (req, res) => {
   const { type } = req.query;
   try {
@@ -557,6 +574,7 @@ app.get('/api/neuro-info', async (req, res) => {
     res.status(500).json({ message: 'Error al obtener información', error: error.message });
   }
 });
+
 
 // ==========================================
 // INICIAR SERVIDOR

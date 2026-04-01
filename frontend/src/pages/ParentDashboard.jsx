@@ -13,7 +13,7 @@ import {
   getNeuroInfo
 } from '../services/api';
 
-// Lista de Avatares Disponibles (Asegúrate que estos archivos existan en public/icons/)
+// Lista de Avatares Disponibles
 const AVAILABLE_AVATARS = [
   { id: 'lobo', src: '/icons/lobo.png', name: 'Lobo' },
   { id: 'unicornio', src: '/icons/unicornio.png', name: 'Unicornio' },
@@ -33,6 +33,18 @@ const AVAILABLE_AVATARS = [
   { id: 'pollo', src: '/icons/pollo.png', name: 'Pollo' },
 ];
 
+// --- NUEVA LISTA DE CONSEJOS PARA PADRES ---
+const PARENT_TIPS = [
+  { title: "Refuerzo Positivo", content: "Elogia el esfuerzo, no solo el resultado. Un '¡lo lograste!' sincero vale más que cualquier premio." },
+  { title: "Rutinas Visuales", content: "Usa listas o dibujos para las rutinas diarias. Ver lo que sigue reduce la ansiedad y las peleas." },
+  { title: "Instrucciones Cortas", content: "Da una instrucción a la vez. Frases largas pueden hacer que se pierdan a mitad del camino." },
+  { title: "Tiempo de Transición", content: "Avisa 5 minutos antes de cambiar de actividad. El cerebro TDAH necesita tiempo para 'cambiar el chip'." },
+  { title: "Movimiento es Aprendizaje", content: "Permite que se muevan mientras estudian. Para ellos, quietud no siempre significa atención." },
+  { title: "Conexión antes que Corrección", content: "Antes de corregir una conducta, asegura la conexión emocional. La disciplina sin conexión genera resistencia." },
+  { title: "Ambiente Ordenado", content: "Reduce el desorden visual en su espacio de estudio. Menos distracciones ayudan a mantener el foco." },
+  { title: "Paciencia y Amor", content: "Recuerda que no lo hacen por molestar. Su cerebro funciona diferente, pero con guía pueden lograr todo." }
+];
+
 const ParentDashboard = ({ onLogout }) => {
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
@@ -43,11 +55,14 @@ const ParentDashboard = ({ onLogout }) => {
   const [selectedChildId, setSelectedChildId] = useState('');
   const [neuroInfo, setNeuroInfo] = useState([]);
 
+  // --- ESTADOS PARA CONSEJOS ROTATIVOS ---
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
+
   // Estados para Agregar Hijo
   const [showAddChild, setShowAddChild] = useState(false);
   const [newChildName, setNewChildName] = useState('');
   const [newChildPin, setNewChildPin] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState(AVAILABLE_AVATARS[0].id); // Guardamos el ID
+  const [selectedAvatar, setSelectedAvatar] = useState(AVAILABLE_AVATARS[0].id);
 
   // Estados para Crear Tarea
   const [showAddTask, setShowAddTask] = useState(false);
@@ -76,6 +91,15 @@ const ParentDashboard = ({ onLogout }) => {
   useEffect(() => {
     loadChildren();
     loadNeuroInfo();
+  }, []);
+
+  // --- EFECTO PARA ROTAR CONSEJOS CADA 10 SEGUNDOS ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTipIndex((prev) => (prev + 1) % PARENT_TIPS.length);
+    }, 10000); // 10000ms = 10s
+
+    return () => clearInterval(interval); // Limpieza al desmontar
   }, []);
 
   // Cargar tareas/premios cuando cambia el hijo seleccionado
@@ -126,8 +150,6 @@ const ParentDashboard = ({ onLogout }) => {
   const handleAddChild = async (e) => {
     e.preventDefault();
     try {
-      // Enviamos el ID del avatar seleccionado (ej: 'lobo')
-      // El backend lo guardará en avatar_icon o similar
       await registerChild({ 
         name: newChildName, 
         pin_code: newChildPin, 
@@ -229,21 +251,20 @@ const ParentDashboard = ({ onLogout }) => {
     }
   };
 
-  // Función auxiliar para obtener la URL del avatar
   const getAvatarUrl = (child) => {
-    // Si el backend devuelve avatar_icon (nombre del archivo)
     if (child.avatar_icon) {
       const avatar = AVAILABLE_AVATARS.find(a => a.id === child.avatar_icon);
-      return avatar ? avatar.src : '/icons/lobo.png'; // Fallback
+      return avatar ? avatar.src : '/icons/lobo.png';
     }
-    // Fallback para datos antiguos si usabas avatar_color (opcional)
     return null; 
   };
 
+  const currentTip = PARENT_TIPS[currentTipIndex];
+
   return (
-    <div className="min-h-screen bg-linear-to-r from-[#a1c4fd] to-[#c2e9fb] p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-r from-[#a1c4fd] to-[#c2e9fb] p-4 md:p-8">
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white backdrop-blur-sm p-6 rounded-xl shadow-sm border border-gray-100 opacity-90">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white backdrop-blur-sm p-6 rounded-xl shadow-sm border border-gray-100 opacity-95">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Hagamos que funcione!</h1>
           <p className="text-xl text-gray-500">Bienvenido/a, {user?.name}</p>
@@ -266,9 +287,9 @@ const ParentDashboard = ({ onLogout }) => {
 
       <div className="grid lg:grid-cols-4 gap-6">
         
-        {/* Columna Izquierda: Lista de Hijos */}
+        {/* Columna Izquierda: Lista de Hijos y Consejos */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-white backdrop-blur-sm p-5 rounded-xl shadow-sm border border-gray-100 opacity-90">
+          <div className="bg-white backdrop-blur-sm p-5 rounded-xl shadow-sm border border-gray-100 opacity-95">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-lg text-gray-800">Mis Hijos</h2>
               <button 
@@ -302,7 +323,6 @@ const ParentDashboard = ({ onLogout }) => {
                   required
                 />
                 
-                {/* Selector de Avatares */}
                 <div className="mb-3">
                   <label className="block text-xs font-bold text-gray-700 mb-2">Elige un Avatar:</label>
                   <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1 bg-white rounded border">
@@ -318,11 +338,7 @@ const ParentDashboard = ({ onLogout }) => {
                         }`}
                         title={avatar.name}
                       >
-                        <img 
-                          src={avatar.src} 
-                          alt={avatar.name} 
-                          className="w-8 h-8 object-contain"
-                        />
+                        <img src={avatar.src} alt={avatar.name} className="w-8 h-8 object-contain" />
                         <span className="text-[9px] mt-1 text-center leading-tight truncate w-full">{avatar.name}</span>
                       </button>
                     ))}
@@ -357,7 +373,7 @@ const ParentDashboard = ({ onLogout }) => {
                           <span className="text-lg font-bold text-blue-600">{child.name.charAt(0)}</span>
                         )}
                       </div>
-                      <span className="font-medium truncate max-w-100px">{child.name}</span>
+                      <span className="font-medium truncate max-w-[100px]">{child.name}</span>
                     </div>
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleDeleteChild(child.id, child.name); }}
@@ -378,10 +394,36 @@ const ParentDashboard = ({ onLogout }) => {
             </div>
           </div>
 
-          {/* Info Neurodivergencia */}
-          <div className="bg-indigo-50 p-5 rounded-xl border backdrop-blur-sm border-indigo-100 opacity-90">
+          {/* --- NUEVO PANEL DE CONSEJOS ROTATIVOS --- */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-xl border border-amber-200 shadow-md relative overflow-hidden opacity-95">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-20 h-20 bg-amber-200 rounded-full opacity-20 blur-xl"></div>
+            
+            <h3 className="font-bold text-amber-800 mb-3 flex items-center gap-2 text-xs uppercase tracking-wider">
+              <span className="text-xl">💡</span> Consejo para Papás
+            </h3>
+            
+            <div className="min-h-[90px] flex flex-col justify-center transition-all duration-500 ease-in-out">
+              <h4 className="font-bold text-amber-900 text-base mb-1 leading-tight">{currentTip.title}</h4>
+              <p className="text-amber-800 text-sm leading-relaxed">{currentTip.content}</p>
+            </div>
+
+            {/* Indicadores de Progreso (Puntos) */}
+            <div className="flex gap-1.5 mt-4 justify-center">
+              {PARENT_TIPS.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={`h-1.5 rounded-full transition-all duration-500 ${
+                    idx === currentTipIndex ? 'w-6 bg-amber-500' : 'w-1.5 bg-amber-200'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Info Neurodivergencia (Estático) */}
+          <div className="bg-indigo-50 p-5 rounded-xl border backdrop-blur-sm border-indigo-100 opacity-95">
             <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
-              <span>💡</span> Consejos TDAH
+              <span>🧠</span> Datos TDAH
             </h3>
             <ul className="space-y-2">
               {neuroInfo.map((info, idx) => (
@@ -428,7 +470,7 @@ const ParentDashboard = ({ onLogout }) => {
               )}
 
               {/* Sección Tareas */}
-              <div className="bg-white backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
+              <div className="bg-white backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-95">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">📋 Tareas Asignadas</h2>
                   <button 
@@ -480,7 +522,7 @@ const ParentDashboard = ({ onLogout }) => {
               </div>
 
               {/* Sección Premios */}
-              <div className="bg-white backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-90">
+              <div className="bg-white backdrop-blur-sm rounded-xl shadow-sm border border-gray-100 overflow-hidden opacity-95">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                   <h2 className="font-bold text-lg text-gray-800">🎁 Premios Disponibles</h2>
                   <button 

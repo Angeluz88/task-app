@@ -114,6 +114,10 @@ export const getNeuroInfo = async (type = null) => {
   const params = type ? { type } : {};
   const response = await api.get('/neuro-info', { params });
   return response.data;
-};
+}; 
 
+export const getParentTips = async () => {
+  const response = await api.get('/parent-tips');
+  return response.data;
+};
 export default api;
