@@ -496,7 +496,7 @@ const ParentDashboard = ({ onLogout }) => {
                     <input name="title" value={prizeForm.title} onChange={handlePrizeChange} placeholder="Título del premio" className="p-2 border rounded w-full" required />
                     <select name="reward_type" value={prizeForm.reward_type} onChange={handlePrizeChange} className="p-2 border rounded w-full">
                       <option value="daily">Diario</option>
-                      <option value="weekly">Semanal</option>
+                      <option value="semanal">Semanal</option>
                       <option value="monthly">Mensual</option>
                     </select>
                     <input type="number" name="required_points" value={prizeForm.required_points} onChange={handlePrizeChange} placeholder="Puntos requeridos" className="p-2 border rounded w-full" required />
