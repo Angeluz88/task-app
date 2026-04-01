@@ -510,7 +510,7 @@ const ParentDashboard = ({ onLogout }) => {
                     <p className="col-span-2 text-center text-gray-400">No hay premios configurados.</p>
                   ) : (
                     prizes.map(prize => (
-                      <div key={prize.id} className={`border rounded-lg p-4 ${prize.is_unlocked ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                      <div key={prize.id} className={`border rounded-lg p-4 ${prize.is_unlocked ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-100'}`}>
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-bold text-gray-800">{prize.title}</h4>
                           <span className="text-xs font-bold bg-white px-2 py-1 rounded border">{prize.required_points} pts</span>
