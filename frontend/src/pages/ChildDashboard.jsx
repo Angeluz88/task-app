@@ -143,7 +143,7 @@ const ChildDashboard = ({ onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-r from-yellow-300 to-orange-300 p-4 pb-20">
+    <div className="min-h-screen bg-linear-to-r from-[#a1c4fd] to-[#c2e9fb] p-4 pb-20">
       <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-90">
         <div className="flex items-center gap-3">
           {/* CORRECCIÓN: Usar etiqueta img en lugar de div con background */}

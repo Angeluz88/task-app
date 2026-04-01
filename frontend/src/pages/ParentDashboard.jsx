@@ -241,7 +241,7 @@ const ParentDashboard = ({ onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-r from-cyan-300 to-blue-300 p-4 md:p-8">
+    <div className="min-h-screen bg-linear-to-r from-[#a1c4fd] to-[#c2e9fb] p-4 md:p-8">
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-100 opacity-90">
         <div>
