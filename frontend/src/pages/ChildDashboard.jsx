@@ -155,7 +155,7 @@ const ChildDashboard = ({ onLogout }) => {
 
   return (
     <div className="min-h-screen bg-[url('https://task-app-eight-inky.vercel.app/bgChildPattern.png')] bg-cover h-screen p-4 pb-20">
-      <header className="flex justify-between items-center mb-6 bg-orange-300 p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-80">
+      <header className="flex justify-between items-center mb-6 bg-orange-200 p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-80">
         <div className="flex items-center gap-3">
           <div style={avatarStyle}>
             {user?.name?.charAt(0).toUpperCase()}
@@ -222,7 +222,7 @@ const ChildDashboard = ({ onLogout }) => {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
+        <div className="bg-fuchsia-300 p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
             <span className="text-2xl">📋</span> Mis Tareas
           </h2>
@@ -256,7 +256,7 @@ const ChildDashboard = ({ onLogout }) => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
+          <div className="bg-red-300 p-6 rounded-xl shadow-md border border-gray-100 opacity-80">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">🎁</span> Mis Premios
             </h2>
