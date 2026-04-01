@@ -33,7 +33,7 @@ export default function ChildLogin({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-300 via-orange-200 to-pink-300 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-300 via-orange-200 to-pink-300 p-4">
       <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-4 border-orange-400">
         
         {/* Icono divertido */}
@@ -92,7 +92,7 @@ export default function ChildLogin({ onLoginSuccess }) {
             type="submit"
             disabled={loading}
             className={`w-full py-4 rounded-xl text-xl font-bold text-white shadow-lg transform transition hover:scale-105 active:scale-95 ${
-              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'
+              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-linear-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600'
             }`}
           >
             {loading ? 'Entrando...' : '¡A Jugar! 🎮'}
