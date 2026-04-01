@@ -35,7 +35,7 @@ const ChildDashboard = ({ onLogout }) => {
   // Cargar datos iniciales
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 60000); // Recargar datos cada minuto
+    const interval = setInterval(loadData, 60000);
     return () => clearInterval(interval);
   }, [childId]);
 
@@ -44,7 +44,7 @@ const ChildDashboard = ({ onLogout }) => {
     if (neuroInfo.length > 1) {
       const rotationInterval = setInterval(() => {
         setCurrentInfoIndex((prevIndex) => (prevIndex + 1) % neuroInfo.length);
-      }, 8000); // 8000ms = 8 segundos
+      }, 8000); // 8 segundos
 
       return () => clearInterval(rotationInterval);
     }
@@ -57,7 +57,7 @@ const ChildDashboard = ({ onLogout }) => {
         getScores(childId),
         getChildPrizes(childId),
         getMotivationalPhrase('general'),
-        getNeuroInfo('curiosity') // Obtenemos TODA la lista de categoría 'curiosity'
+        getNeuroInfo('curiosity') // Obtenemos TODA la lista
       ]);
       
       setTasks(tasksData);
@@ -65,9 +65,9 @@ const ChildDashboard = ({ onLogout }) => {
       setPrizes(prizesData);
       setPhrase(phraseData || { phrase: "¡Tú puedes!" });
       
-      // Guardamos el array completo. Si viene vacío, dejamos array vacío.
+      // Guardamos el array completo
       setNeuroInfo(infoData || []);
-      setCurrentInfoIndex(0); // Reiniciar índice al cargar
+      setCurrentInfoIndex(0); // Reiniciar índice
       
       setLoading(false);
     } catch (error) {
@@ -151,27 +151,25 @@ const ChildDashboard = ({ onLogout }) => {
   const avatarIcon = user?.avatar_icon || 'lobo.png'; 
   const avatarSrc = `/icons/${avatarIcon}`;
 
-  // Elemento actual a mostrar en "¿Sabías qué?"
+  // Elemento actual a mostrar
   const currentItem = neuroInfo.length > 0 ? neuroInfo[currentInfoIndex] : null;
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[#d4a5ff] via-[#8fd3f4] to-[#fce38a]">
-        <div className="text-center bg-white/80 p-8 rounded-2xl shadow-xl backdrop-blur-sm">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-xl text-purple-700 font-bold">Preparando tu aventura...</p>
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-r from-[#d4a5ff] via-[#8fd3f4] to-[#fce38a]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-blue-600 font-bold">Cargando tu mundo...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-[#d4a5ff] via-[#8fd3f4] to-[#fce38a] p-4 pb-20 font-sans">
-      
-      {/* Header */}
-      <header className="flex justify-between items-center mb-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-lg border border-white/40 sticky top-0 z-20">
+    <div className="min-h-screen bg-linear-to-r from-[#d4a5ff] via-[#8fd3f4] to-[#fce38a] p-4 pb-20">
+      <header className="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-md sticky top-0 z-10 opacity-90">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-lg bg-white flex items-center justify-center shrink-0">
+          <div className="w-60px h-60px rounded-full overflow-hidden border-2 border-white shadow-lg bg-white backdrop-blur-sm flex items-center justify-center">
             <img 
               src={avatarSrc} 
               alt="Avatar" 
@@ -184,40 +182,43 @@ const ChildDashboard = ({ onLogout }) => {
             />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-extrabold text-gray-800 leading-tight">¡Hola, {user?.name}! 🚀</h1>
-            <p className="text-xs md:text-sm text-purple-600 font-bold animate-pulse">{phrase.phrase}</p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">¡Hola, {user?.name}! 🚀</h1>
+            <p className="text-xs md:text-sm text-purple-600 font-medium">{phrase.phrase}</p>
           </div>
         </div>
-        <button onClick={onLogout} className="bg-red-100 text-red-600 p-2.5 rounded-xl hover:bg-red-200 transition shadow-sm" title="Cerrar sesión">
+        <button onClick={onLogout} className="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition opacity-80" title="Cerrar sesión">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
         </button>
       </header>
 
-      {/* Panel de Puntos */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Hoy', value: scores.daily, color: 'yellow' },
-          { label: 'Semana', value: scores.weekly, color: 'green' },
-          { label: 'Mes', value: scores.monthly, color: 'blue' },
-          { label: 'Total', value: scores.total, color: 'purple' }
-        ].map((stat) => (
-          <div key={stat.label} className={`bg-${stat.color}-100/90 backdrop-blur-sm p-3 rounded-2xl text-center shadow-sm border border-${stat.color}-200 transform hover:-translate-y-1 transition duration-300`}>
-            <p className={`text-${stat.color}-800 text-[10px] md:text-xs font-extrabold uppercase tracking-wider`}>{stat.label}</p>
-            <p className={`text-2xl md:text-3xl font-black text-${stat.color}-600 mt-1`}>{stat.value}</p>
-          </div>
-        ))}
+        <div className="bg-yellow-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-yellow-400 opacity-80">
+          <p className="text-yellow-800 text-xs font-bold uppercase">Hoy</p>
+          <p className="text-2xl font-extrabold text-yellow-600">{scores.daily}</p>
+        </div>
+        <div className="bg-green-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-green-400 opacity-80">
+          <p className="text-green-800 text-xs font-bold uppercase">Semana</p>
+          <p className="text-2xl font-extrabold text-green-600">{scores.weekly}</p>
+        </div>
+        <div className="bg-red-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-red-400 opacity-80">
+          <p className="text-blue-800 text-xs font-bold uppercase">Mes</p>
+          <p className="text-2xl font-extrabold text-blue-600">{scores.monthly}</p>
+        </div>
+        <div className="bg-purple-200 backdrop-blur-sm p-3 rounded-xl text-center shadow-sm border border-purple-400 opacity-80">
+          <p className="text-purple-800 text-xs font-bold uppercase">Total</p>
+          <p className="text-2xl font-extrabold text-purple-600">{scores.total}</p>
+        </div>
       </div>
 
-      {/* Modal del Temporizador */}
       {activeTask && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl border-4 border-blue-100">
-            <h2 className="text-2xl font-black mb-2 text-gray-800">{activeTask.title}</h2>
-            <p className="text-gray-500 mb-6 font-medium">Concéntrate. ¡Tú puedes!</p>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl opacity-90">
+            <h2 className="text-2xl font-bold mb-2 text-gray-800">{activeTask.title}</h2>
+            <p className="text-gray-500 mb-6">Concéntrate. ¡Tú puedes!</p>
             
-            <div className={`text-6xl md:text-7xl font-mono font-black mb-8 tracking-wider ${timeLeft < 60 ? 'text-red-500 animate-pulse' : 'text-blue-600'}`}>
+            <div className={`text-6xl md:text-7xl font-mono font-bold mb-8 tracking-wider ${timeLeft < 60 ? 'text-red-500 animate-pulse' : 'text-blue-600'}`}>
               {formatTime(timeLeft)}
             </div>
 
@@ -232,7 +233,7 @@ const ChildDashboard = ({ onLogout }) => {
               </div>
 
               {(timeLeft === 0 || !isTimerRunning) && activeTask && (
-                <button onClick={handleCompleteTask} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl font-black hover:from-green-600 hover:to-emerald-700 transition shadow-lg transform hover:scale-105 active:scale-95 animate-bounce">
+                <button onClick={handleCompleteTask} className="w-full bg-linear-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition shadow-lg transform hover:scale-105 animate-bounce">
                   ¡TERMINÉ LA TAREA! ✅
                 </button>
               )}
@@ -242,41 +243,31 @@ const ChildDashboard = ({ onLogout }) => {
       )}
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Columna Izquierda: Tareas */}
-        <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/40">
-          <h2 className="text-xl font-black mb-4 text-gray-800 flex items-center gap-2">
+        <div className="bg-white backdrop-blur-sm p-6 rounded-xl shadow-md border border-gray-100 opacity-90">
+          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
             <span className="text-2xl">📋</span> Mis Tareas
           </h2>
           
           {tasks.length === 0 ? (
-            <div className="text-center py-12 bg-blue-50 rounded-xl border-2 border-dashed border-blue-200">
+            <div className="text-center py-10">
               <p className="text-4xl mb-2">🎉</p>
-              <p className="text-gray-600 font-bold">¡Todo limpio! No hay tareas pendientes.</p>
+              <p className="text-gray-500">¡No hay tareas pendientes!</p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3">
               {tasks.map(task => {
                 const isCompleted = Number(task.completed_today) > 0;
                 return (
-                  <div key={task.id} className={`relative overflow-hidden border-l-4 p-4 rounded-xl flex justify-between items-center transition-all duration-300 ${isCompleted ? 'bg-green-50 border-green-500 opacity-80' : 'bg-white border-blue-500 shadow-md hover:shadow-lg hover:-translate-y-1'}`}>
-                    {isCompleted && <div className="absolute inset-0 bg-green-100/50 z-0"></div>}
-                    
-                    <div className="flex-1 relative z-10">
-                      <h3 className={`font-bold text-gray-800 text-lg ${isCompleted ? 'line-through text-gray-500' : ''}`}>{task.title}</h3>
-                      <p className="text-xs text-gray-600 mt-1 font-medium">⏱️ {task.duration_minutes} min | 🏆 {task.points} pts</p>
-                      {isCompleted && (
-                        <span className="inline-block mt-2 text-xs text-green-800 font-black bg-green-200 px-3 py-1 rounded-full">
-                          ✓ ¡Completada!
-                        </span>
-                      )}
+                  <div key={task.id} className={`border-l-4 p-4 rounded-r-lg flex justify-between items-center transition-all ${isCompleted ? 'bg-green-50 border-green-500 opacity-75' : 'bg-blue-50 border-blue-500 hover:shadow-md'}`}>
+                    <div className="flex-1">
+                      <h3 className={`font-bold text-gray-800 ${isCompleted ? 'line-through text-gray-500' : ''}`}>{task.title}</h3>
+                      <p className="text-xs text-gray-600 mt-1">⏱️ {task.duration_minutes} min | 🏆 {task.points} pts</p>
+                      {isCompleted && <span className="inline-block mt-1 text-xs text-green-700 font-bold bg-green-200 px-2 py-0.5 rounded-full">✓ Completada hoy</span>}
                     </div>
-                    
                     {!isCompleted ? (
-                      <button onClick={() => startTimer(task)} className="ml-4 relative z-10 bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition text-sm font-bold shadow-md active:scale-95">
-                        Iniciar
-                      </button>
+                      <button onClick={() => startTimer(task)} className="ml-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-bold shadow-sm">Iniciar</button>
                     ) : (
-                      <div className="ml-4 text-green-600 text-3xl relative z-10 drop-shadow-sm">✅</div>
+                      <div className="ml-4 text-green-600 text-2xl">✅</div>
                     )}
                   </div>
                 );
@@ -285,70 +276,59 @@ const ChildDashboard = ({ onLogout }) => {
           )}
         </div>
 
-        {/* Columna Derecha: Premios y Curiosidades */}
         <div className="space-y-6">
-          {/* Premios */}
-          <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/40">
-            <h2 className="text-xl font-black mb-4 text-gray-800 flex items-center gap-2">
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 opacity-90">
+            <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">🎁</span> Mis Premios
             </h2>
             {prizes.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-gray-500 text-sm font-medium">Papá/mamá aún no añade premios.</p>
-              </div>
+              <p className="text-gray-800 text-sm text-center py-4">Papá/mamá aún no ha añadido premios.</p>
             ) : (
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {prizes.map(prize => (
-                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all duration-300 ${prize.is_unlocked ? 'border-green-400 bg-gradient-to-r from-green-50 to-white shadow-md transform hover:scale-[1.02]' : 'border-gray-200 bg-gray-50 opacity-70 grayscale hover:grayscale-0 hover:opacity-100'}`}>
+                  <div key={prize.id} className={`p-4 rounded-xl border-2 transition-all ${prize.is_unlocked ? 'border-green-400 bg-linear-to-r from-green-50 to-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-80 grayscale'}`}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className={`font-black text-lg ${prize.is_unlocked ? 'text-green-800' : 'text-gray-700'}`}>{prize.title}</h4>
-                        <p className="text-xs text-gray-600 mt-1 font-medium">{prize.description}</p>
+                        <h4 className={`font-bold ${prize.is_unlocked ? 'text-green-800' : 'text-gray-800'}`}>{prize.title}</h4>
+                        <p className="text-xs text-gray-700 mt-1">{prize.description}</p>
                       </div>
-                      <span className={`text-xs font-black px-3 py-1.5 rounded-full shadow-sm ${prize.is_unlocked ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
-                        {prize.required_points} pts
-                      </span>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${prize.is_unlocked ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-700'}`}>{prize.required_points} pts</span>
                     </div>
-                    {prize.is_unlocked && (
-                      <div className="mt-2 flex justify-end">
-                        <span className="text-xs text-green-600 font-black bg-green-100 px-2 py-1 rounded-md animate-pulse">¡Desbloqueado! 🎉</span>
-                      </div>
-                    )}
+                    {prize.is_unlocked && <p className="text-xs text-green-600 font-bold mt-2 text-right">¡Desbloqueado! 🎉</p>}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* ¿Sabías qué? (Datos Neurodivergencia con Rotación) */}
+          {/* ¿Sabías qué? (Con Rotación Automática y Estilos Originales) */}
           {neuroInfo.length > 0 && currentItem && (
-            <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-2xl shadow-lg text-white transform transition-all hover:scale-[1.02]">
-              {/* Decoración de fondo */}
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
-              <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-yellow-400 opacity-20 rounded-full blur-xl"></div>
+            <div className="bg-white backdrop-blur-sm p-5 rounded-xl border-l-4 border-indigo-300 shadow-sm opacity-90 relative overflow-hidden">
+              {/* Decoración sutil de fondo igual que antes */}
+              <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-indigo-100 rounded-full opacity-50 blur-xl"></div>
               
-              <div className="relative z-10">
-                <h3 className="font-black text-lg mb-3 flex items-center gap-2 uppercase tracking-wider text-indigo-100">
-                  <span className="text-2xl">💡</span> ¿Sabías qué?
-                </h3>
-                
-                <div className="min-h-[80px] flex flex-col justify-center transition-opacity duration-500">
-                  <h4 className="font-bold text-xl mb-2 leading-tight text-yellow-300">{currentItem.title}</h4>
-                  <p className="text-indigo-50 text-sm leading-relaxed font-medium">{currentItem.content}</p>
-                </div>
-
-                {/* Indicadores de paginación (Puntos) */}
-                {neuroInfo.length > 1 && (
-                  <div className="flex gap-2 mt-4 justify-center">
-                    {neuroInfo.map((_, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`h-1.5 rounded-full transition-all duration-500 ${idx === currentInfoIndex ? 'w-8 bg-yellow-400' : 'w-1.5 bg-indigo-300'}`}
-                      />
-                    ))}
-                  </div>
-                )}
+              <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2 relative z-10">
+                <span>💡</span> ¿Sabías qué?
+              </h3>
+              
+              <div className="relative z-10 min-h-[60px] flex flex-col justify-center transition-opacity duration-500">
+                <p className="text-sm text-indigo-900 leading-relaxed">
+                  <strong className="block mb-1">{currentItem.title}:</strong>
+                  {currentItem.content}
+                </p>
               </div>
+
+              {/* Indicadores de paginación (puntos abajo) */}
+              {neuroInfo.length > 1 && (
+                <div className="flex gap-1.5 mt-3 justify-center">
+                  {neuroInfo.map((_, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`h-1.5 rounded-full transition-all duration-500 ${idx === currentInfoIndex ? 'w-6 bg-indigo-400' : 'w-1.5 bg-indigo-200'}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
