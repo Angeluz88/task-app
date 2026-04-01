@@ -27,6 +27,9 @@ const AVAILABLE_AVATARS = [
   { id: 'perro', src: '/icons/perro.png', name: 'Perro' },
   { id: 'vaca', src: '/icons/vaca.png', name: 'Vaca' },
   { id: 'jirafa', src: '/icons/jirafa.png', name: 'Jirafa' },
+  { id: 'cerdo', src: '/icons/cerdo.png', name: 'Cerdo' },
+  { id: 'hipopotamo', src: '/icons/hipopotamo.png', name: 'Hipopotamo' },
+  { id: 'caballo', src: '/icons/caballo.png', name: 'Caballo' },
 ];
 
 const ParentDashboard = ({ onLogout }) => {

@@ -37,7 +37,7 @@ export default function ChildLogin({ onLoginSuccess }) {
       <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center border-4 border-orange-400">
         
         {/* Icono divertido */}
-        <div className="text-6xl mb-4 animate-bounce">
+        <div className="flex text-6xl mb-4 animate-bounce items-center">
           <img src="/icons/sol.png" alt="sol" />
         </div>
         
