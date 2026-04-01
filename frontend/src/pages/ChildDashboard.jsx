@@ -173,19 +173,19 @@ const ChildDashboard = ({ onLogout }) => {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-yellow-200 p-3 rounded-xl text-center shadow-sm border border-yellow-300 opacity-80">
+        <div className="bg-yellow-200 p-3 rounded-xl text-center shadow-sm border border-yellow-400 opacity-80">
           <p className="text-yellow-800 text-xs font-bold uppercase">Hoy</p>
           <p className="text-2xl font-extrabold text-yellow-600">{scores.daily}</p>
         </div>
-        <div className="bg-green-200 p-3 rounded-xl text-center shadow-sm border border-green-300 opacity-80">
+        <div className="bg-green-200 p-3 rounded-xl text-center shadow-sm border border-green-400 opacity-80">
           <p className="text-green-800 text-xs font-bold uppercase">Semana</p>
           <p className="text-2xl font-extrabold text-green-600">{scores.weekly}</p>
         </div>
-        <div className="bg-blue-200 p-3 rounded-xl text-center shadow-sm border border-blue-300 opacity-80">
+        <div className="bg-red-200 p-3 rounded-xl text-center shadow-sm border border-red-400 opacity-80">
           <p className="text-blue-800 text-xs font-bold uppercase">Mes</p>
           <p className="text-2xl font-extrabold text-blue-600">{scores.monthly}</p>
         </div>
-        <div className="bg-purple-200 p-3 rounded-xl text-center shadow-sm border border-purple-300 opacity-80">
+        <div className="bg-purple-200 p-3 rounded-xl text-center shadow-sm border border-purple-400 opacity-80">
           <p className="text-purple-800 text-xs font-bold uppercase">Total</p>
           <p className="text-2xl font-extrabold text-purple-600">{scores.total}</p>
         </div>
